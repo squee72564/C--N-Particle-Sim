@@ -1,66 +1,14 @@
-#include <SFML/Graphics.hpp> // Include the SFML graphics library
-#include <list> // Include the vector container
-#include <string>
-#include <random>
+//g++ main.o Particle.o -o main -L"C:\SFML\lib" -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
+//g++ -c main.cpp Particle.cpp -I"C:/SFML/include" -I"C:/SFML/bin"
 
-const float REFLECTION_FACTOR = 0.02f;
+#include <string>
+#include "Particle.hpp"
+
 const float TIME_STEP = 0.01f;
 
 // Window dimensions
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
-
-template <typename T>
-float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2);
-
-// Particle structure
-struct Particle
-{
-    sf::Vector2f position; // Position of the particle
-    sf::Vector2f velocity; // Velocity of the particle
-    sf::CircleShape shape; // Circle shape to represent the particle
-    float mass; // Mass of the particle
-
-    // Constructor to initialize the particle's properties
-    Particle(sf::Vector2f pos, sf::Vector2f vel, float m, std::mt19937& gen, std::uniform_int_distribution<>& dis)
-        : position(pos), velocity(vel), mass(m)
-    {
-        shape.setRadius(mass); // Set the radius of the circle to the mass of the particle
-        shape.setFillColor(sf::Color(dis(gen), dis(gen), dis(gen))); //multicolored
-        shape.setOrigin(mass, mass); // Set the origin of the circle to its center
-    }
-
-    void update(float dt, std::list<Particle>& particles)
-    {
-        position += velocity * dt;
-        shape.setPosition(position);
-
-        // Check for collisions with other particles
-        for (auto& other : particles)
-        {
-            if (&other == this) continue; // Skip self-collision
-
-            // Calculate the distance between the two particles
-            float distanceSquared = dot(position - other.position, position - other.position);
-
-            // If the distance is smaller than the sum of the radii, the particles are colliding
-            if (distanceSquared < (mass + other.mass) * (mass + other.mass))
-            {
-                // Handle collision here
-                // Calculate the dot product of the velocity and position difference vectors
-                float dotProduct1 = dot(velocity - other.velocity, position - other.position);
-                float dotProduct2 = dot(other.velocity - velocity, other.position - position);
-
-                // Multiply the reflection vector by a factor less than 1 to reduce its magnitude
-                sf::Vector2f v1_new = velocity - REFLECTION_FACTOR * (2.0f * other.mass / (mass + other.mass)) * dotProduct1 * (position - other.position);
-                sf::Vector2f v2_new = other.velocity - REFLECTION_FACTOR * (2.0f * mass / (mass + other.mass)) * dotProduct2 * (other.position - position);
-
-                velocity = v1_new;
-                other.velocity = v2_new;
-            }
-        }
-    }
-};
 
 int main()
 {
@@ -145,11 +93,6 @@ int main()
 
         window.display(); // Display the window
     }
-        return 0;
-}
-
-template <typename T>
-float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2)
-{
-    return (vec1.x * vec2.x) + (vec1.y * vec2.y);
+    
+    return 0;
 }
