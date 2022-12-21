@@ -3,9 +3,15 @@
 #include <string>
 #include <random>
 
+const float REFLECTION_FACTOR = 0.02f;
+const float TIME_STEP = 0.01f;
+
 // Window dimensions
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
+
+template <typename T>
+float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2);
 
 // Particle structure
 struct Particle
@@ -24,11 +30,42 @@ struct Particle
         shape.setOrigin(mass, mass); // Set the origin of the circle to its center
     }
 
-    // Update the particle's position and shape
-    void update(float dt)
+    void update(float dt, std::list<Particle>& particles)
     {
-        position += velocity * dt; // Update the position using the velocity and the time step
-        shape.setPosition(position); // Set the position of the shape to the position of the particle
+        position += velocity * dt;
+        shape.setPosition(position);
+
+        // Check for collisions with other particles
+        for (auto& other : particles)
+        {
+            if (&other == this) continue; // Skip self-collision
+
+            // Calculate the distance between the two particles
+            float distanceSquared = dot(position - other.position, position - other.position);
+
+            // If the distance is smaller than the sum of the radii, the particles are colliding
+            if (distanceSquared < (mass + other.mass) * (mass + other.mass))
+            {
+                // Handle collision here
+                float m1 = mass;
+                float m2 = other.mass;
+                sf::Vector2f v1 = velocity;
+                sf::Vector2f v2 = other.velocity;
+                sf::Vector2f x1 = position;
+                sf::Vector2f x2 = other.position;
+
+                // Calculate the dot product of the velocity and position difference vectors
+                float dotProduct1 = dot(v1 - v2, x1 - x2);
+                float dotProduct2 = dot(v2 - v1, x2 - x1);
+
+                // Multiply the reflection vector by a factor less than 1 to reduce its magnitude
+                sf::Vector2f v1_new = v1 - REFLECTION_FACTOR * (2.0f * m2 / (m1 + m2)) * dotProduct1 * (x1 - x2);
+                sf::Vector2f v2_new = v2 - REFLECTION_FACTOR * (2.0f * m1 / (m1 + m2)) * dotProduct2 * (x2 - x1);
+
+                velocity = v1_new;
+                other.velocity = v2_new;
+            }
+        }
     }
 };
 
@@ -90,7 +127,7 @@ int main()
             // Apply gravity to the velocity
             it->velocity += gravity;
             // Update the particle's position and shape
-            it->update(1.0f / 60.0f);
+            it->update(TIME_STEP, particles);
 
             // Check if the particle's position is outside the window bounds
             if (it->position.x < 0 || it->position.x > WINDOW_WIDTH || it->position.y > WINDOW_HEIGHT)
@@ -121,4 +158,10 @@ int main()
         window.display(); // Display the window
     }
         return 0;
+}
+
+template <typename T>
+float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2)
+{
+    return (vec1.x * vec2.x) + (vec1.y * vec2.y);
 }
