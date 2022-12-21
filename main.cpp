@@ -47,20 +47,13 @@ struct Particle
             if (distanceSquared < (mass + other.mass) * (mass + other.mass))
             {
                 // Handle collision here
-                float m1 = mass;
-                float m2 = other.mass;
-                sf::Vector2f v1 = velocity;
-                sf::Vector2f v2 = other.velocity;
-                sf::Vector2f x1 = position;
-                sf::Vector2f x2 = other.position;
-
                 // Calculate the dot product of the velocity and position difference vectors
-                float dotProduct1 = dot(v1 - v2, x1 - x2);
-                float dotProduct2 = dot(v2 - v1, x2 - x1);
+                float dotProduct1 = dot(velocity - other.velocity, position - other.position);
+                float dotProduct2 = dot(other.velocity - velocity, other.position - position);
 
                 // Multiply the reflection vector by a factor less than 1 to reduce its magnitude
-                sf::Vector2f v1_new = v1 - REFLECTION_FACTOR * (2.0f * m2 / (m1 + m2)) * dotProduct1 * (x1 - x2);
-                sf::Vector2f v2_new = v2 - REFLECTION_FACTOR * (2.0f * m1 / (m1 + m2)) * dotProduct2 * (x2 - x1);
+                sf::Vector2f v1_new = velocity - REFLECTION_FACTOR * (2.0f * other.mass / (mass + other.mass)) * dotProduct1 * (position - other.position);
+                sf::Vector2f v2_new = other.velocity - REFLECTION_FACTOR * (2.0f * mass / (mass + other.mass)) * dotProduct2 * (other.position - position);
 
                 velocity = v1_new;
                 other.velocity = v2_new;
@@ -121,32 +114,27 @@ int main()
             }
         }
 
-        // Update all the particles
+        window.clear(); // Clear the window
+
+        // Update and draw all the particles
         for (auto it = particles.begin(); it != particles.end();)
         {
             // Apply gravity to the velocity
             it->velocity += gravity;
             // Update the particle's position and shape
             it->update(TIME_STEP, particles);
+            window.draw(it->shape); // Draw the particle's shape
 
             // Check if the particle's position is outside the window bounds
             if (it->position.x < 0 || it->position.x > WINDOW_WIDTH || it->position.y > WINDOW_HEIGHT)
             {
-                // If the particle is outside the window bounds, remove it from the vector
+                // If the particle is outside the window bounds, erase it from the vector
                 it = particles.erase(it);
             }
             else
             {
                 ++it;
             }
-        }
-
-        window.clear(); // Clear the window
-
-        // Draw all the particles
-        for (const auto& particle : particles)
-        {
-            window.draw(particle.shape); // Draw the particle's shape
         }
 
         // Update the particle count text
