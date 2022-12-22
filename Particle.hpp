@@ -4,7 +4,7 @@
 #include <random>
 #include <list> // Include the vector container
 
-const float REFLECTION_FACTOR = 0.02f;
+const float REFLECTION_FACTOR = 0.018f;
 
 class Particle
 {
