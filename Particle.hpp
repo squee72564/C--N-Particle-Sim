@@ -17,9 +17,6 @@ public:
     Particle(sf::Vector2f pos, sf::Vector2f vel, float m, std::mt19937& gen, std::uniform_int_distribution<>& dis);
     ~Particle();
     void update(float dt, std::list<Particle>& particles);
-    sf::Vector2f& getVel();
-    sf::Vector2f& getPos();
-    sf::CircleShape& getShape();
 };
 
 template <typename T>

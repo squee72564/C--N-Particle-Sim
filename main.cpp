@@ -3,6 +3,7 @@
 
 #include <string>
 #include "Particle.hpp"
+#include "QuadTree.hpp"
 
 const float TIME_STEP = 0.01f;
 
@@ -16,6 +17,11 @@ int main()
     sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Particle Simulator");
     window.setFramerateLimit(60); // Limit the frame rate to 60 FPS
 
+    QuadTree qt = QuadTree(0, sf::Vector2f(WINDOW_WIDTH/2, WINDOW_HEIGHT/2), WINDOW_HEIGHT, WINDOW_WIDTH);
+    QuadTree qt1 = QuadTree(0, sf::Vector2f(WINDOW_WIDTH/4, WINDOW_HEIGHT/4), WINDOW_HEIGHT/2, WINDOW_WIDTH/2);
+    QuadTree qt2 = QuadTree(0, sf::Vector2f(WINDOW_WIDTH/4, 3 * WINDOW_HEIGHT/4), WINDOW_HEIGHT/2, WINDOW_WIDTH/2);
+    QuadTree qt3 = QuadTree(0, sf::Vector2f(3 * WINDOW_WIDTH/4, WINDOW_HEIGHT/4), WINDOW_HEIGHT/2, WINDOW_WIDTH/2);
+    QuadTree qt4 = QuadTree(0, sf::Vector2f(3 * WINDOW_WIDTH/4, 3 * WINDOW_HEIGHT/4), WINDOW_HEIGHT/2, WINDOW_WIDTH/2);
     // Vector to store the particles
     std::list<Particle> particles;
 
@@ -64,6 +70,8 @@ int main()
 
         window.clear(); // Clear the window
 
+
+
         // Update and draw all the particles
         for (auto it = particles.begin(); it != particles.end();)
         {
@@ -84,6 +92,12 @@ int main()
                 ++it;
             }
         }
+
+        window.draw(qt.m_rect);
+        window.draw(qt1.m_rect);
+        window.draw(qt2.m_rect);
+        window.draw(qt3.m_rect);
+        window.draw(qt4.m_rect);
 
         // Update the particle count text
         particleCountText.setString("Particle count: " + std::to_string(particles.size()));

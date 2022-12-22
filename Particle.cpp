@@ -40,18 +40,3 @@ void Particle::update(float dt, std::list<Particle>& particles)
         }
     }
 }
-
-sf::Vector2f& Particle::getVel()
-{
-    return velocity;
-}
-
-sf::Vector2f& Particle::getPos()
-{
-    return position;
-}
-
-sf::CircleShape& Particle::getShape()
-{
-    return shape;
-}
