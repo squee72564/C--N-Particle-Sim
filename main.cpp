@@ -21,7 +21,8 @@ int main()
     std::list<Particle> particles;
 
     // Gravity vector
-    sf::Vector2f gravity(0, 0.981f);
+    //sf::Vector2f gravity(0, 0.981f);
+    sf::Vector2f gravity(0.0f, 0.0f);
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -30,6 +31,8 @@ int main()
     bool isRightButtonPressed = false;
     sf::Vector2i mousePos;
     sf::Vector2f mousePosF;
+
+    float particleMass = 5.0f;
 
     // Create a font
     sf::Font font;
@@ -43,6 +46,16 @@ int main()
     particleCountText.setFont(font); // Set the font of the text
     particleCountText.setCharacterSize(24); // Set the size of the text
     particleCountText.setFillColor(sf::Color::White); // Set the fill color of the text
+    particleCountText.setOutlineColor(sf::Color::Blue);
+    particleCountText.setOutlineThickness(1.0f);
+    // Create a text object to display the particle mass
+    sf::Text particleMassText;
+    particleMassText.setFont(font); // Set the font of the text
+    particleMassText.setCharacterSize(12); // Set the size of the text
+    particleMassText.setFillColor(sf::Color::White); // Set the fill color of the text
+    particleMassText.setPosition(0, 100);
+    particleMassText.setOutlineColor(sf::Color::Blue);
+    particleMassText.setOutlineThickness(1.0f);
 
     // Run the program as long as the window is open
     while (window.isOpen())
@@ -55,6 +68,20 @@ int main()
             {
                 window.close(); // Close the window
             }
+            else if(sf::Keyboard::isKeyPressed(sf::Keyboard::Z))
+            {
+                if (particleMass < 10)
+                {
+                    particleMass += 0.5;
+                }
+            }
+            else if(sf::Keyboard::isKeyPressed(sf::Keyboard::X))
+            {
+                if (particleMass > 1)
+                {
+                    particleMass -= 0.5;
+                }
+            }
             else if (event.type == sf::Event::MouseWheelScrolled || (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)) // If the event is the left mouse button being pressed
             {
                 // Get the mouse position
@@ -63,7 +90,7 @@ int main()
                 sf::Vector2f mousePosF(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
 
                 // Add a new particle with a random velocity
-                particles.emplace_back(mousePosF, sf::Vector2f(rand() % 200 - 100, -(rand() % 100 + 50)), 5.0f, gen , dis);
+                particles.emplace_back(mousePosF, sf::Vector2f(rand() % 25 - 25, -(rand() % 25 + 25)), particleMass, gen , dis);
             }
             else if (event.type == sf::Event::MouseButtonReleased)
             {
@@ -114,10 +141,11 @@ int main()
 
         // Update the particle count text
         particleCountText.setString("Particle count: " + std::to_string(particles.size()));
+        particleMassText.setString("Particle mass: " + std::to_string( int(particleMass) ));
 
         // Draw the particle count text
         window.draw(particleCountText);
-
+        window.draw(particleMassText);
         window.display(); // Display the window
     }
     

@@ -12,9 +12,6 @@ Particle::~Particle() {}
 
 void Particle::update(float dt, std::list<Particle>& particles)
 {
-    position += velocity * dt;
-    shape.setPosition(position);
-
     // Check for collisions with other particles
     for (auto& other : particles)
     {
@@ -22,6 +19,14 @@ void Particle::update(float dt, std::list<Particle>& particles)
 
         // Calculate the distance between the two particles
         float distanceSquared = dot(position - other.position, position - other.position);
+        
+        if (distanceSquared != 0) {
+            // Calculate the force of attraction between the particles based on their masses and the distance between them
+            float force = (other.mass / distanceSquared) * 2;
+
+            // Add the force of attraction to the velocity update equation
+            velocity += force * (other.position - position);
+        }
 
         // If the distance is smaller than the sum of the radii, the particles are colliding
         if (distanceSquared < (mass + other.mass) * (mass + other.mass))
@@ -39,4 +44,7 @@ void Particle::update(float dt, std::list<Particle>& particles)
             other.velocity = v2_new;
         }
     }
+
+    position += velocity * dt;
+    shape.setPosition(position);
 }
