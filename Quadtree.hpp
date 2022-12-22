@@ -16,14 +16,15 @@ public:
   sf::Vector2f origin;
   std::array<QuadTree*, 4> m_subnode;
   std::vector<int> m_index;
+  bool isLeaf;
 
   //void split();
-  //void insert();
   //bool contain() const;
   //bool contain_rect() const;
   //void set_color();
 
   QuadTree(const int m_level, sf::Vector2f ori,  float h, float w);
+  void insert();
 
   //void update();
   //void get() const;
