@@ -17,11 +17,6 @@ int main()
     sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Particle Simulator");
     window.setFramerateLimit(60); // Limit the frame rate to 60 FPS
 
-    QuadTree qt = QuadTree(0, sf::Vector2f(WINDOW_WIDTH/2, WINDOW_HEIGHT/2), WINDOW_HEIGHT, WINDOW_WIDTH);
-    QuadTree qt1 = QuadTree(0, sf::Vector2f(WINDOW_WIDTH/4, WINDOW_HEIGHT/4), WINDOW_HEIGHT/2, WINDOW_WIDTH/2);
-    QuadTree qt2 = QuadTree(0, sf::Vector2f(WINDOW_WIDTH/4, 3 * WINDOW_HEIGHT/4), WINDOW_HEIGHT/2, WINDOW_WIDTH/2);
-    QuadTree qt3 = QuadTree(0, sf::Vector2f(3 * WINDOW_WIDTH/4, WINDOW_HEIGHT/4), WINDOW_HEIGHT/2, WINDOW_WIDTH/2);
-    QuadTree qt4 = QuadTree(0, sf::Vector2f(3 * WINDOW_WIDTH/4, 3 * WINDOW_HEIGHT/4), WINDOW_HEIGHT/2, WINDOW_WIDTH/2);
     // Vector to store the particles
     std::list<Particle> particles;
 
@@ -31,6 +26,10 @@ int main()
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dis(0, 255);
+
+    bool isRightButtonPressed = false;
+    sf::Vector2i mousePos;
+    sf::Vector2f mousePosF;
 
     // Create a font
     sf::Font font;
@@ -66,19 +65,39 @@ int main()
                 // Add a new particle with a random velocity
                 particles.emplace_back(mousePosF, sf::Vector2f(rand() % 200 - 100, -(rand() % 100 + 50)), 5.0f, gen , dis);
             }
+            else if (event.type == sf::Event::MouseButtonReleased)
+            {
+                isRightButtonPressed = false;
+            }
+            else if (isRightButtonPressed || (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Right))
+            {
+                isRightButtonPressed = true;
+                // Get the mouse position
+                mousePos = sf::Mouse::getPosition(window);
+                // Convert the mouse position to a float vector
+                mousePosF = sf::Vector2f(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
+            }
         }
 
         window.clear(); // Clear the window
-
-
 
         // Update and draw all the particles
         for (auto it = particles.begin(); it != particles.end();)
         {
             // Apply gravity to the velocity
             it->velocity += gravity;
+
+            if (isRightButtonPressed)
+            {
+                sf::Vector2f tempForce = sf::Vector2f(0.7 * (it->position.x - mousePosF.x), 0.7 * (it->position.y - mousePosF.y));
+
+                // Add the force to the total force applied to the particle
+                it->velocity -= tempForce;
+            }
+ 
             // Update the particle's position and shape
             it->update(TIME_STEP, particles);
+
             window.draw(it->shape); // Draw the particle's shape
 
             // Check if the particle's position is outside the window bounds
@@ -92,12 +111,6 @@ int main()
                 ++it;
             }
         }
-
-        window.draw(qt.m_rect);
-        window.draw(qt1.m_rect);
-        window.draw(qt2.m_rect);
-        window.draw(qt3.m_rect);
-        window.draw(qt4.m_rect);
 
         // Update the particle count text
         particleCountText.setString("Particle count: " + std::to_string(particles.size()));
