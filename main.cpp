@@ -3,9 +3,8 @@
 
 #include <string>
 #include "Particle.hpp"
-#include "QuadTree.hpp"
 
-const float TIME_STEP = 0.01f;
+const float TIME_STEP = 0.004f;
 
 // Window dimensions
 const int WINDOW_WIDTH = 800;
@@ -19,6 +18,7 @@ int main()
 
     // Vector to store the particles
     std::list<Particle> particles;
+    //std::vector<Particle> particles;
 
     // Gravity vector
     //sf::Vector2f gravity(0, 0.981f);
@@ -36,7 +36,7 @@ int main()
 
     // Create a font
     sf::Font font;
-    if (!font.loadFromFile("C:/Users/recru/Exilent/src/fonts/tahoma.ttf"))
+    if (!font.loadFromFile("fonts/ALGER.TTF"))
     {
         return -1;
     }
@@ -90,11 +90,16 @@ int main()
                 sf::Vector2f mousePosF(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
 
                 // Add a new particle with a random velocity
-                particles.emplace_back(mousePosF, sf::Vector2f(rand() % 25 - 25, -(rand() % 25 + 25)), particleMass, gen , dis);
+                //particles.emplace_back(mousePosF, sf::Vector2f(rand() % 25 - 25, -(rand() % 25 + 25)), particleMass, gen , dis);
+                particles.emplace_back(mousePosF, sf::Vector2f(0,0), particleMass, gen , dis);
             }
             else if (event.type == sf::Event::MouseButtonReleased)
             {
-                isRightButtonPressed = false;
+                if (!sf::Mouse::isButtonPressed(sf::Mouse::Right))
+                {
+                    isRightButtonPressed = false;
+                }
+                
             }
             else if (isRightButtonPressed || (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Right))
             {
@@ -116,7 +121,7 @@ int main()
 
             if (isRightButtonPressed)
             {
-                sf::Vector2f tempForce = sf::Vector2f(0.7 * (it->position.x - mousePosF.x), 0.7 * (it->position.y - mousePosF.y));
+                sf::Vector2f tempForce = sf::Vector2f(0.3 * (it->position.x - mousePosF.x), 0.3 * (it->position.y - mousePosF.y));
 
                 // Add the force to the total force applied to the particle
                 it->velocity -= tempForce;
