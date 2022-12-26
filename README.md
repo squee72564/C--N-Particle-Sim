@@ -5,7 +5,13 @@ SFML is cross-platform software development library designed to provide a simple
 
 [SFML Website](https://www.sfml-dev.org/)
 
-This particle simulator lets you place various size/mass particles in the window space, and will simulate a 0G environment like space where the particles interact.
+This particle simulator lets you place various size/mass particles in the window space, and will simulate a Zero-G environment like space where the particles interact.
+
+Project is structured into the different directories:
+  1. `docs` has all documentation
+  2. `font` are fonts used for text objects for the simulation
+  3. `include` is all header files for the C++ code
+  4. `src` is all of the .cpp files for the C++ code
 
 Implemented so far:
   * Spawn Particles of various sizes and mass:
