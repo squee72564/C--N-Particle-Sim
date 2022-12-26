@@ -47,13 +47,19 @@ void Particle::update(float dt, std::list<Particle>& particles)
             // Momentum change due to collision
             float p = 2 * (a1-a2)/(mass + other.mass);
 
-            velocity -= p * other.mass * (rHat);
-            other.velocity += p * mass * (rHat); 
+            velocity -= p/mass * (rHat);
+            other.velocity += p/other.mass * (rHat); 
         }
     }
 
     position += velocity * dt;
     shape.setPosition(position);
+}
+
+template <typename T>
+float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2)
+{
+    return (vec1.x * vec2.x) + (vec1.y * vec2.y);
 }
 
 float inv_Sqrt(float number)

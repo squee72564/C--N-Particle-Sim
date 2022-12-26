@@ -1,8 +1,8 @@
 #ifndef PARTICLE
 #define PARTICLE
-#include <SFML/Graphics.hpp> // Include the SFML graphics library
 #include <random>
 #include <list> // Include the vector container
+#include <SFML/Graphics.hpp> // Include the SFML graphics library
 #include <math.h>
 
 static const float REFLECTION_FACTOR = 0.015f;
@@ -22,9 +22,10 @@ public:
     void update(float dt, std::list<Particle>& particles);
 };
 
+
 template <typename T>
-float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2)
-{
-    return (vec1.x * vec2.x) + (vec1.y * vec2.y);
-}
+float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2);
+
+float inv_Sqrt(float number);
+
 #endif

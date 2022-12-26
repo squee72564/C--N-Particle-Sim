@@ -32,6 +32,8 @@ int main()
     sf::Vector2i mousePos;
     sf::Vector2f mousePosF;
 
+    bool showInfo = false;
+
     float particleMass = 5.0f;
 
     // Create a font
@@ -68,18 +70,26 @@ int main()
             {
                 window.close(); // Close the window
             }
-            else if(sf::Keyboard::isKeyPressed(sf::Keyboard::Z))
+            else if(event.type == sf::Event::KeyPressed && sf::Keyboard::isKeyPressed(sf::Keyboard::Z))
             {
                 if (particleMass < 10)
                 {
                     particleMass += 0.5;
                 }
             }
-            else if(sf::Keyboard::isKeyPressed(sf::Keyboard::X))
+            else if(event.type == sf::Event::KeyPressed && sf::Keyboard::isKeyPressed(sf::Keyboard::X))
             {
                 if (particleMass > 1)
                 {
                     particleMass -= 0.5;
+                }
+            }
+            else if(event.type == sf::Event::KeyPressed && sf::Keyboard::isKeyPressed(sf::Keyboard::I))
+            {
+                if (showInfo) {
+                    showInfo = false;
+                } else {
+                    showInfo = true;
                 }
             }
             else if (event.type == sf::Event::MouseWheelScrolled || (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)) // If the event is the left mouse button being pressed
@@ -114,8 +124,17 @@ int main()
         window.clear(); // Clear the window
 
         // Update and draw all the particles
-        for (auto it = particles.begin(); it != particles.end();)
+        for (auto it = particles.begin(); it != particles.end(); ++it)
         {
+
+            // Check if the particle's position is outside the window bounds
+            if (it->position.x < 0 || it->position.x > WINDOW_WIDTH || it->position.y > WINDOW_HEIGHT)
+            {
+                // If the particle is outside the window bounds, erase it from the vector
+                it = particles.erase(it);
+                continue;
+            }
+
             // Apply gravity to the velocity
             it->velocity += gravity;
 
@@ -127,21 +146,20 @@ int main()
                 it->velocity -= tempForce;
             }
  
-            // Update the particle's position and shape
+            // Update the particle's gravitational forces and collision
             it->update(TIME_STEP, particles);
+
+            // create line for particle's velocity vector
+            sf::VertexArray line(sf::Lines, 2);
+            line[1].position.x = (it->position.x + it->velocity.x/30);
+            line[1].position.y = (it->position.y + it->velocity.y/30);
+            line[0].position = it->position;
+            line[0].color  = sf::Color::Red;
+            line[1].color = sf::Color::Blue;
 
             window.draw(it->shape); // Draw the particle's shape
 
-            // Check if the particle's position is outside the window bounds
-            if (it->position.x < 0 || it->position.x > WINDOW_WIDTH || it->position.y > WINDOW_HEIGHT)
-            {
-                // If the particle is outside the window bounds, erase it from the vector
-                it = particles.erase(it);
-            }
-            else
-            {
-                ++it;
-            }
+            if (showInfo) window.draw(line); // Draw the velocity vector
         }
 
         // Update the particle count text
