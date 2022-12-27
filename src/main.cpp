@@ -11,8 +11,6 @@ const float TIME_STEP = 0.003f;
 const int WINDOW_WIDTH = 1280;
 const int WINDOW_HEIGHT = 800;
 
-//sf::Vector2f getMousePostion(const sf::RenderWindow &window, sf::Vector2i &mousePos);
-
 int main()
 {
     // Create the window

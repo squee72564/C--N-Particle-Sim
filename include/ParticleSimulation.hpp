@@ -47,6 +47,7 @@ private:
 
 public:
     ParticleSimulation(float dt, const sf::Vector2f &g, sf::RenderWindow &window);
+    ParticleSimulation(ParticleSimulation& sim);
     virtual ~ParticleSimulation();
     void run();
     void pollUserEvent();

@@ -1,7 +1,5 @@
 #include "Particle.hpp"
 
-float inv_Sqrt(float number);
-
 Particle::Particle(sf::Vector2f pos, sf::Vector2f vel, float m, std::mt19937& gen, std::uniform_int_distribution<>& dis)
     : position(pos), velocity(vel), mass(m)
 {
