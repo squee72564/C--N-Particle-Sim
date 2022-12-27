@@ -2,6 +2,7 @@
 //g++ -c main.cpp Particle.cpp -I"C:/SFML/include" -I"C:/SFML/bin"
 
 #include <string>
+#include <iostream>
 #include "Particle.hpp"
 
 const float TIME_STEP = 0.004f;
@@ -29,8 +30,14 @@ int main()
     std::uniform_int_distribution<> dis(0, 255);
 
     bool isRightButtonPressed = false;
-    sf::Vector2i mousePos;
-    sf::Vector2f mousePosF;
+    sf::Vector2i current_mousePos;
+    sf::Vector2f current_mousePosF;
+
+    bool isAiming = false;
+    sf::Vector2i initial_mousePos;
+    sf::Vector2f initial_mousePosF;
+    sf::Vector2i final_mousePos;
+    sf::Vector2f final_mousePosF;
 
     bool showInfo = false;
 
@@ -92,16 +99,36 @@ int main()
                     showInfo = true;
                 }
             }
-            else if (event.type == sf::Event::MouseWheelScrolled || (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)) // If the event is the left mouse button being pressed
+            else if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left)
+            {
+                isAiming = false;
+                // Get the mouse position
+                final_mousePos = sf::Mouse::getPosition(window);
+                // Convert the mouse position to a float vector
+                final_mousePosF = sf::Vector2f(static_cast<float>(final_mousePos.x), static_cast<float>(final_mousePos.y));
+                particles.emplace_back(initial_mousePosF, initial_mousePosF-final_mousePosF, particleMass, gen , dis);
+
+            }
+            else if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
+            {
+                isAiming = true;
+                // Get the mouse position
+                initial_mousePos = sf::Mouse::getPosition(window);
+                // Convert the mouse position to a float vector
+                initial_mousePosF = sf::Vector2f(static_cast<float>(initial_mousePos.x), static_cast<float>(initial_mousePos.y));
+
+                std::cout << "Pressed\n";
+            }
+            else if (event.type == sf::Event::MouseWheelScrolled) // If the event is the left mouse button being pressed
             {
                 // Get the mouse position
-                sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+                current_mousePos = sf::Mouse::getPosition(window);
                 // Convert the mouse position to a float vector
-                sf::Vector2f mousePosF(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
+                current_mousePosF = sf::Vector2f(static_cast<float>(current_mousePos.x), static_cast<float>(current_mousePos.y));
 
                 // Add a new particle with a random velocity
-                //particles.emplace_back(mousePosF, sf::Vector2f(rand() % 25 - 25, -(rand() % 25 + 25)), particleMass, gen , dis);
-                particles.emplace_back(mousePosF, sf::Vector2f(0,0), particleMass, gen , dis);
+                //particles.emplace_back(current_mousePosF, sf::Vector2f(rand() % 25 - 25, -(rand() % 25 + 25)), particleMass, gen , dis);
+                particles.emplace_back(current_mousePosF, sf::Vector2f(0,0), particleMass, gen , dis);
             }
             else if (event.type == sf::Event::MouseButtonReleased)
             {
@@ -115,9 +142,9 @@ int main()
             {
                 isRightButtonPressed = true;
                 // Get the mouse position
-                mousePos = sf::Mouse::getPosition(window);
+                current_mousePos = sf::Mouse::getPosition(window);
                 // Convert the mouse position to a float vector
-                mousePosF = sf::Vector2f(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
+                current_mousePosF = sf::Vector2f(static_cast<float>(current_mousePos.x), static_cast<float>(current_mousePos.y));
             }
         }
 
@@ -140,7 +167,7 @@ int main()
 
             if (isRightButtonPressed)
             {
-                sf::Vector2f tempForce = sf::Vector2f(0.3 * (it->position.x - mousePosF.x), 0.3 * (it->position.y - mousePosF.y));
+                sf::Vector2f tempForce = sf::Vector2f(0.3 * (it->position.x - current_mousePosF.x), 0.3 * (it->position.y - current_mousePosF.y));
 
                 // Add the force to the total force applied to the particle
                 it->velocity -= tempForce;
@@ -149,19 +176,35 @@ int main()
             // Update the particle's gravitational forces and collision
             it->update(TIME_STEP, particles);
 
-            // create line for particle's velocity vector
-            sf::VertexArray line(sf::Lines, 2);
-            line[1].position.x = (it->position.x + it->velocity.x/30);
-            line[1].position.y = (it->position.y + it->velocity.y/30);
-            line[0].position = it->position;
-            line[0].color  = sf::Color::Red;
-            line[1].color = sf::Color::Blue;
-
             window.draw(it->shape); // Draw the particle's shape
 
-            if (showInfo) window.draw(line); // Draw the velocity vector
+            if (showInfo)  {
+                // create line for particle's velocity vector
+                sf::VertexArray line(sf::Lines, 2);
+                line[1].position.x = (it->position.x + it->velocity.x/30);
+                line[1].position.y = (it->position.y + it->velocity.y/30);
+                line[0].position = it->position;
+                line[0].color  = sf::Color::Red;
+                line[1].color = sf::Color::Blue;
+                
+                window.draw(line); // Draw the velocity vector
+            }
         }
 
+        if (isAiming) {
+            current_mousePos = sf::Mouse::getPosition(window);
+            current_mousePosF = sf::Vector2f(static_cast<float>(current_mousePos.x), static_cast<float>(current_mousePos.y));
+
+            // create line for particle's velocity vector
+            sf::VertexArray line(sf::Lines, 2);
+            line[0].position = initial_mousePosF;
+            line[1].position = current_mousePosF;
+            line[0].color  = sf::Color(0, 255, 0, 255);
+            line[1].color = sf::Color(0, 255, 0, 55);
+            
+            window.draw(line); // Draw the velocity vector
+        }
+        
         // Update the particle count text
         particleCountText.setString("Particle count: " + std::to_string(particles.size()));
         particleMassText.setString("Particle mass: " + std::to_string( int(particleMass) ));
