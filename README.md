@@ -15,7 +15,7 @@ Project is structured into the different directories:
 
 Implemented so far:
   * Spawn Particles of various sizes and mass:
-    - `Left Click` to spawn a particle
+    - Click and drag `Left Click` to launch a particle. Click and release the same spot without dragging to start with 0 velocity.
     - `Z` key to increase particle size/mass by 1
     - `X` key to decrease particle size/mass by 1
   * `Right Click` to attrack particles to mouse position
@@ -31,6 +31,5 @@ I plant to impelment the following features:
     - Particle collisions need only be considered in nearby Quadtree cell
     - Particles from nearby QuadTree cells need to attract individually, and particles in distant cells can be treated as a single large particle centered at the cell's center of mass
     - Works in O(nlogn) as opposed to O(n<sup>2</sup>) brute force method
-  * Ability to click and drag when creating particles to launch a particle with a starting velocity
   * Toggle to draw information on screen such as particles velocity vector, and Quadtree visualization.
   * Accurate values for mass to better mimic stellar bodies in space.
