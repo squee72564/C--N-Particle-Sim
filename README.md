@@ -19,6 +19,7 @@ Implemented so far:
     - `Z` key to increase particle size/mass by 1
     - `X` key to decrease particle size/mass by 1
   * `Right Click` to attrack particles to mouse position
+  * `I` key to show visualizations for information like particle velocity.
   * Basic gravitational attraction between particles
     - Done in O(n<sup>2</sup>) brute force method
   * Basic particle collision when particles touch
@@ -31,5 +32,5 @@ I plant to impelment the following features:
     - Particle collisions need only be considered in nearby Quadtree cell
     - Particles from nearby QuadTree cells need to attract individually, and particles in distant cells can be treated as a single large particle centered at the cell's center of mass
     - Works in O(nlogn) as opposed to O(n<sup>2</sup>) brute force method
-  * Toggle to draw information on screen such as particles velocity vector, and Quadtree visualization.
+  * Toggle to draw information for Quadtree visualization.
   * Accurate values for mass to better mimic stellar bodies in space.
