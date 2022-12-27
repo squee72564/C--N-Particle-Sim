@@ -24,7 +24,7 @@ void Particle::update(float dt, std::list<Particle>& particles)
         float distanceSquared = dot(position - other.position, position - other.position);
         
         // If the distance is greater than the sum of the radii then the particles can attract
-        if (distanceSquared != 0) {
+        if (distanceSquared != 0 && distanceSquared > (radius + other.radius) * (radius + other.radius)) {
             // Calculate acceleration due to force of attraction to other particle.
             float acceleration = (other.mass / distanceSquared) * BIG_G;
 
@@ -45,7 +45,7 @@ void Particle::update(float dt, std::list<Particle>& particles)
             float a2 = dot(other.velocity, rHat);
             
             // Momentum change due to collision
-            float p = 2 * (a1-a2)/(mass + other.mass);
+            float p = 2 * mass * other.mass * (a1-a2)/(mass + other.mass);
 
             velocity -= p/mass * (rHat);
             other.velocity += p/other.mass * (rHat); 
