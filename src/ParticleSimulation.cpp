@@ -28,6 +28,10 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
     particleMassText.setOutlineColor(sf::Color::Blue);
     particleMassText.setOutlineThickness(1.0f);
 
+    velocityText.setFont(font);
+    velocityText.setCharacterSize(10); // Set the size of the text
+    velocityText.setFillColor(sf::Color::White); // Set the fill color of the text
+
     int level = 0;
     QuadTree qt = QuadTree(level, WINDOW_HEIGHT, WINDOW_WIDTH);
     quadTree = qt;
@@ -133,9 +137,12 @@ void ParticleSimulation::updateAndDraw()
 {
     gameWindow->clear(); // Clear the window
 
-    // If LMB is pressed, create line for aim
+    // If LMB is pressed, create line for aim and show angle
     if (isAiming) {
         current_mousePosF = getMousePostion(*gameWindow, current_mousePos);
+
+        velocityText.setPosition(initial_mousePosF.x+5, initial_mousePosF.y);
+        velocityText.setString(std::to_string( abs( (atan( (initial_mousePosF.y - current_mousePosF.y)/(initial_mousePosF.x - current_mousePosF.x) ) * 180) / 3.14) ));
 
         sf::VertexArray line(sf::Lines, 2);
         line[0].position = initial_mousePosF;
@@ -143,12 +150,14 @@ void ParticleSimulation::updateAndDraw()
         line[0].color  = sf::Color(0, 255, 0, 255);
         line[1].color = sf::Color(0, 255, 0, 55);
         
+        gameWindow->draw(velocityText);
         gameWindow->draw(line);
     }
     
     // Update the particle count & mass text
     particleCountText.setString("Particle count: " + std::to_string(particles.size()));
     particleMassText.setString("Particle mass: " + std::to_string( int(particleMass) ));
+    
 
     // Draw the particle count & mass text
     gameWindow->draw(particleCountText);

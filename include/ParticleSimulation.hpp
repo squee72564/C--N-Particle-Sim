@@ -49,6 +49,7 @@ private:
     sf::Font font;
     sf::Text particleCountText;
     sf::Text particleMassText;
+    sf::Text velocityText;
 
     sf::Event event;
 
