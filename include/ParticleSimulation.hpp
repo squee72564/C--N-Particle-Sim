@@ -42,6 +42,8 @@ private:
     bool showVelocity;
     bool showQuadTree;
 
+    bool isPaused;
+    
     float particleMass;
 
     sf::Font font;

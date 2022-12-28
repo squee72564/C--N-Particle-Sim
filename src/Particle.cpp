@@ -51,7 +51,6 @@ void Particle::update(float dt, std::list<Particle>& particles)
     }
 
     position += velocity * dt;
-    shape.setPosition(position);
 }
 
 template <typename T>
