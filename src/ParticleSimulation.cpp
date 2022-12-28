@@ -27,6 +27,15 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
     particleMassText.setPosition(0, 100);
     particleMassText.setOutlineColor(sf::Color::Blue);
     particleMassText.setOutlineThickness(1.0f);
+
+    int level = 0;
+    QuadTree qt = QuadTree(level, WINDOW_HEIGHT, WINDOW_WIDTH);
+    quadTree = qt;
+    quadTree.split();
+    quadTree.m_subnode[0]->split();
+    quadTree.m_subnode[0]->m_subnode[3]->split();
+    quadTree.m_subnode[0]->m_subnode[3]->m_subnode[1]->split();
+    quadTree.m_subnode[0]->m_subnode[3]->m_subnode[1]->m_subnode[2]->split();
 }
 
 ParticleSimulation::~ParticleSimulation()
@@ -128,7 +137,7 @@ void ParticleSimulation::updateAndDraw()
 
         it->velocity += gravity; // Apply gravity to the velocity
 
-        // If RMG Pressed apply attractive force
+        // If RMB Pressed apply attractive force
         if (isRightButtonPressed)
         {
             current_mousePosF = getMousePostion(*gameWindow, current_mousePos);
@@ -174,6 +183,9 @@ void ParticleSimulation::updateAndDraw()
     // Draw the particle count & mass text
     gameWindow->draw(particleCountText);
     gameWindow->draw(particleMassText);
+
+    //DrawQuadTree Rectangles
+    quadTree.display(gameWindow);
 
     gameWindow->display(); // Display the window
 }

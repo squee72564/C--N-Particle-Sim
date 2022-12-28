@@ -4,8 +4,10 @@
 #include <string>
 #include <iostream>
 #include <list>
+#include <stack>
 #include "Simulation.hpp"
 #include "Particle.hpp"
+#include "Quadtree.hpp"
 
 class ParticleSimulation : Simulation
 {
@@ -16,6 +18,8 @@ private:
 
     // Delta Time
     float timeStep;
+
+    QuadTree quadTree;
 
     std::list<Particle> particles;
 
