@@ -39,7 +39,8 @@ private:
     sf::Vector2i final_mousePos;
     sf::Vector2f final_mousePosF;
 
-    bool showInfo;
+    bool showVelocity;
+    bool showQuadTree;
 
     float particleMass;
 

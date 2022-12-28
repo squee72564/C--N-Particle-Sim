@@ -36,6 +36,7 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
     quadTree.m_subnode[0]->m_subnode[3]->split();
     quadTree.m_subnode[0]->m_subnode[3]->m_subnode[1]->split();
     quadTree.m_subnode[0]->m_subnode[3]->m_subnode[1]->m_subnode[2]->split();
+    quadTree.m_subnode[0]->m_subnode[3]->m_subnode[1]->m_subnode[2]->m_subnode[2]->split();
 }
 
 ParticleSimulation::~ParticleSimulation()
@@ -77,7 +78,11 @@ void ParticleSimulation::pollUserEvent()
                 }
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::I))
                 {
-                    showInfo = (showInfo) ? false : true;
+                    showVelocity = (showVelocity) ? false : true;
+                }
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::G))
+                {
+                    showQuadTree = (showQuadTree) ? false : true;
                 }
                 break;
 
@@ -124,6 +129,11 @@ void ParticleSimulation::updateAndDraw()
 {
     gameWindow->clear(); // Clear the window
 
+    //Recursively draw QuadTree rectangles
+    if (showQuadTree) {
+        quadTree.display(gameWindow);
+    }
+    
     // Update and draw all the particles
     for (auto it = particles.begin(); it != particles.end(); ++it)
     {
@@ -151,7 +161,7 @@ void ParticleSimulation::updateAndDraw()
         gameWindow->draw(it->shape); // Draw the particle's shape
 
         // create visual for particle's velocity vector if toggled
-        if (showInfo)  {
+        if (showVelocity)  {
             sf::VertexArray line(sf::Lines, 2);
             line[1].position.x = (it->position.x + it->velocity.x/30);
             line[1].position.y = (it->position.y + it->velocity.y/30);
@@ -183,9 +193,6 @@ void ParticleSimulation::updateAndDraw()
     // Draw the particle count & mass text
     gameWindow->draw(particleCountText);
     gameWindow->draw(particleMassText);
-
-    //DrawQuadTree Rectangles
-    quadTree.display(gameWindow);
 
     gameWindow->display(); // Display the window
 }
