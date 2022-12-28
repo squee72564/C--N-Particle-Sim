@@ -11,7 +11,7 @@ QuadTree::QuadTree()
   m_index.reserve(NODE_CAPACITY);
   m_rect.setPosition(1280-width, 800-height);
   m_rect.setSize(sf::Vector2f(width,height));
-  m_rect.setOutlineColor(sf::Color::Blue);
+  m_rect.setOutlineColor(sf::Color(0,255,0,55));
   m_rect.setOutlineThickness(1);
   m_rect.setFillColor(sf::Color::Transparent);
   origin = sf::Vector2f(0,0);
@@ -28,7 +28,7 @@ QuadTree::QuadTree(const int m_level, sf::Vector2f ori, float h, float w)
   m_index.reserve(NODE_CAPACITY);
   m_rect.setPosition(ori);
   m_rect.setSize(sf::Vector2f(width,height));
-  m_rect.setOutlineColor(sf::Color::Blue);
+  m_rect.setOutlineColor(sf::Color(0,255,0,55));
   m_rect.setOutlineThickness(1);
   m_rect.setFillColor(sf::Color::Transparent);
   origin = ori;
@@ -45,7 +45,7 @@ QuadTree::QuadTree(const int m_level, float h, float w)
   m_index.reserve(NODE_CAPACITY);
   m_rect.setPosition(1280-width, 800-height);
   m_rect.setSize(sf::Vector2f(width,height));
-  m_rect.setOutlineColor(sf::Color::Blue);
+  m_rect.setOutlineColor(sf::Color(0,255,0,55));
   m_rect.setOutlineThickness(1);
   m_rect.setFillColor(sf::Color::Transparent);
   origin = sf::Vector2f(0,0);
@@ -62,7 +62,7 @@ QuadTree::QuadTree(const QuadTree& qt)
   m_index.reserve(NODE_CAPACITY);
   m_rect.setPosition(qt.m_rect.getPosition());
   m_rect.setSize(sf::Vector2f(width,height));
-  m_rect.setOutlineColor(sf::Color::Blue);
+  m_rect.setOutlineColor(sf::Color(0,255,0,55));
   m_rect.setOutlineThickness(1);
   m_rect.setFillColor(sf::Color::Transparent);
   origin = sf::Vector2f(0,0);
