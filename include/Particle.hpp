@@ -30,8 +30,8 @@ public:
 
 
 template <typename T>
-float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2);
+inline float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2);
 
-float inv_Sqrt(float number);
+inline float inv_Sqrt(float number);
 
 #endif

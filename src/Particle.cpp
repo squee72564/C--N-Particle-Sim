@@ -116,12 +116,12 @@ void Particle::checkCollision(std::list<Particle>& particles)
 
 
 template <typename T>
-float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2)
+inline float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2)
 {
     return (vec1.x * vec2.x) + (vec1.y * vec2.y);
 }
 
-float inv_Sqrt(float number)
+inline float inv_Sqrt(float number)
 {
     float squareRoot = sqrt(number);
     return 1.0f / squareRoot;
