@@ -35,12 +35,6 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
     int level = 0;
     QuadTree qt = QuadTree(level, WINDOW_HEIGHT, WINDOW_WIDTH);
     quadTree = qt;
-    quadTree.split();
-    quadTree.m_subnode[0]->split();
-    quadTree.m_subnode[0]->m_subnode[3]->split();
-    quadTree.m_subnode[0]->m_subnode[3]->m_subnode[1]->split();
-    quadTree.m_subnode[0]->m_subnode[3]->m_subnode[1]->m_subnode[2]->split();
-    quadTree.m_subnode[0]->m_subnode[3]->m_subnode[1]->m_subnode[2]->m_subnode[2]->split();
 }
 
 ParticleSimulation::~ParticleSimulation()
@@ -136,6 +130,7 @@ void ParticleSimulation::pollUserEvent()
 void ParticleSimulation::updateAndDraw()
 {
     gameWindow->clear(); // Clear the window
+    quadTree.deleteTree();
 
     // If LMB is pressed, create line for aim and show angle
     if (isAiming) {
@@ -162,11 +157,6 @@ void ParticleSimulation::updateAndDraw()
     // Draw the particle count & mass text
     gameWindow->draw(particleCountText);
     gameWindow->draw(particleMassText);
-
-    //Recursively draw QuadTree rectangles
-    if (showQuadTree) {
-        quadTree.display(gameWindow);
-    }
 
     // Update and draw all the particles
     for (auto it = particles.begin(); it != particles.end(); ++it)
@@ -209,6 +199,13 @@ void ParticleSimulation::updateAndDraw()
             
             gameWindow->draw(line); // Draw the velocity vector
         }
+
+        quadTree.insert(*it);
+    }
+
+    //Recursively draw QuadTree rectangles
+    if (showQuadTree) {
+        quadTree.display(gameWindow);
     }
 
     gameWindow->display(); // Display the window

@@ -7,7 +7,7 @@
 #include <stack>
 #include "Simulation.hpp"
 #include "Particle.hpp"
-#include "Quadtree.hpp"
+#include "QuadTree.hpp"
 
 class ParticleSimulation : Simulation
 {
