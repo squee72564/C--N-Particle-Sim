@@ -73,7 +73,7 @@ void QuadTree::split()
   }
 
   isLeaf = false;
-  
+
   m_subnode[0] = new QuadTree(m_level + 1, sf::Vector2f(origin.x, origin.y), height/2, width/2);
   m_subnode[1] = new QuadTree(m_level + 1, sf::Vector2f(origin.x+ width/2, origin.y), height/2, width/2);
   m_subnode[2] = new QuadTree(m_level + 1, sf::Vector2f(origin.x, origin.y + height/2), height/2, width/2);
@@ -163,15 +163,3 @@ void QuadTree::deleteTree()
 // {
   
 // }
-
-inline bool operator==(const Particle& lhs, const Particle& rhs)
-{
-    if (lhs.id == rhs.id)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
