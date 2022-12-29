@@ -3,9 +3,12 @@
 #include <SFML/Graphics.hpp> // Include the SFML graphics library
 #include <array>
 #include <vector>
+#include <iostream>
+#include <algorithm>
+#include "Particle.hpp"
 
-#define NODE_CAPACITY 10
-#define NODE_MAX_DEPTH 6
+#define NODE_CAPACITY 2 //This is the capacity at which the quadtree splits; 1 means it divides until max depthj
+#define NODE_MAX_DEPTH 8
 
 class QuadTree {
 public:
@@ -17,35 +20,28 @@ public:
   sf::RectangleShape m_rect;
   
   sf::Vector2f origin;
+  //sf::Vector2f com;
   
   std::array<QuadTree*, 4> m_subnode;
-  std::vector<int> m_index;
+  std::vector<Particle> m_index;
 
   bool isLeaf;
 
-  
-  //bool contain() const;
-  //bool contain_rect() const;
-  //void set_color();
-
   QuadTree();
+  //~QuadTree();
   QuadTree(const int m_level, sf::Vector2f ori, float h, float w);
   QuadTree(const int m_level, float h, float w);
   QuadTree(const QuadTree& qt);
   
   void split();
   void display(sf::RenderWindow* gameWindow);
-  
-  //QuadTree(QuadTree&& qt);
-  //void insert();
+  void insert(Particle& particle);
+  void deleteTree();
 
-  //void update();
-  //void get() const;
-  //void retrieve() const;
-  //void draw() const;
-  //void reset();
+  //QuadTree(QuadTree&& qt);
 };
 
-extern QuadTree quadtree;
+inline bool operator==(const Particle& lhs, const Particle& rhs);
+//inline bool operator!=(const X& lhs, const X& rhs){return !operator==(lhs,rhs);}
 
 #endif
