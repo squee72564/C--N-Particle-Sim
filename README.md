@@ -35,6 +35,6 @@ I plant to impelment the following features:
     - Works in O(nlogn) as opposed to O(n<sup>2</sup>) brute force method
   * Accurate values for mass to better mimic stellar bodies in space.
 
-![QuadTree](https://https://github.com/squee72564/CPP-N-Particle-Simulator/blob/main/docs/QuadTree.PNG?raw=true)
-![QuadTree 2](https://https://github.com/squee72564/CPP-N-Particle-Simulator/blob/main/docs/QuadTree2.PNG?raw=true)
-![Velocity Vectors](https://https://github.com/squee72564/CPP-N-Particle-Simulator/blob/main/docs/VelocityVec.PNG?raw=true)
+![QuadTree](https://i.imgur.com/98WA83t.png)
+![QuadTree 2](https://i.imgur.com/d6xDlIX.png)
+![Velocity Vectors](https://i.imgur.com/41bDXTd.png)
