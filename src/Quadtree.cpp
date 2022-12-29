@@ -7,7 +7,7 @@ QuadTree::QuadTree()
     m_subnode{nullptr, nullptr, nullptr, nullptr},
     isLeaf(true)
 {
-  m_index.reserve(NODE_CAPACITY);
+  m_index.reserve(NODE_SPLIT_CAPACITY);
   m_rect.setPosition(1280-width, 800-height);
   m_rect.setSize(sf::Vector2f(width,height));
   m_rect.setOutlineColor(sf::Color(0,255,0,55));
@@ -23,7 +23,7 @@ QuadTree::QuadTree(const int m_level, sf::Vector2f ori, float h, float w)
     m_subnode{nullptr, nullptr, nullptr, nullptr},
     isLeaf(true)
 {
-  m_index.reserve(NODE_CAPACITY);
+  m_index.reserve(NODE_SPLIT_CAPACITY);
   m_rect.setPosition(ori);
   m_rect.setSize(sf::Vector2f(width,height));
   m_rect.setOutlineColor(sf::Color(0,255,0,55));
@@ -39,7 +39,7 @@ QuadTree::QuadTree(const int m_level, float h, float w)
     m_subnode{nullptr, nullptr, nullptr, nullptr},
     isLeaf(true)
 {
-  m_index.reserve(NODE_CAPACITY);
+  m_index.reserve(NODE_SPLIT_CAPACITY);
   m_rect.setPosition(1280-width, 800-height);
   m_rect.setSize(sf::Vector2f(width,height));
   m_rect.setOutlineColor(sf::Color(0,255,0,55));
@@ -56,7 +56,7 @@ QuadTree::QuadTree(const QuadTree& qt)
     m_index{qt.m_index},
     isLeaf(qt.isLeaf)
 {
-  m_index.reserve(NODE_CAPACITY);
+  m_index.reserve(NODE_SPLIT_CAPACITY);
   m_rect.setPosition(qt.m_rect.getPosition());
   m_rect.setSize(sf::Vector2f(width,height));
   m_rect.setOutlineColor(sf::Color(0,255,0,55));
@@ -111,21 +111,18 @@ void QuadTree::insert(Particle& particle)
   //If Quadtree node is a leaf node, insert and split if node is at capacity
   if (isLeaf)
   {
-    if (m_index.size() + 1 == NODE_CAPACITY)
+    m_index.push_back(particle);
+
+    if (m_index.size() == NODE_SPLIT_CAPACITY)
     {
-      m_index.push_back(particle);
       this->split();
-    }
-    else
-    {
-      m_index.push_back(particle);
     }
 
     return;
   }
 
   for (QuadTree* subNode : m_subnode) {
-    if (subNode->m_rect.getGlobalBounds().contains(particle.position))
+    if (subNode != nullptr && subNode->m_rect.getGlobalBounds().contains(particle.position))
     {
       subNode->insert(particle);
       break;
@@ -137,6 +134,7 @@ void QuadTree::deleteTree()
 {
   if (this == nullptr || (m_level == 0 && isLeaf))
   {
+    m_index.clear();
     return;
   }
 
