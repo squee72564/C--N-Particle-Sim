@@ -142,8 +142,8 @@ void ParticleSimulation::updateAndDraw()
         sf::VertexArray line(sf::Lines, 2);
         line[0].position = initial_mousePosF;
         line[1].position = current_mousePosF;
-        line[0].color  = sf::Color(0, 255, 0, 255);
-        line[1].color = sf::Color(0, 255, 0, 55);
+        line[0].color  = sf::Color(0, 255, 0, 155);
+        line[1].color = sf::Color(0, 255, 0, 25);
         
         gameWindow->draw(velocityText);
         gameWindow->draw(line);
@@ -194,8 +194,8 @@ void ParticleSimulation::updateAndDraw()
             line[1].position.x = (it->position.x + it->velocity.x/30);
             line[1].position.y = (it->position.y + it->velocity.y/30);
             line[0].position = it->position;
-            line[0].color  = sf::Color::Red;
-            line[1].color = sf::Color::Blue;
+            line[0].color  = sf::Color(0,0,255,255);
+            line[1].color = sf::Color(255,0,0,0);
             
             gameWindow->draw(line); // Draw the velocity vector
         }
