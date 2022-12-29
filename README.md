@@ -34,3 +34,7 @@ I plant to impelment the following features:
     - Particles from nearby QuadTree cells need to attract individually, and particles in distant cells can be treated as a single large particle centered at the cell's center of mass
     - Works in O(nlogn) as opposed to O(n<sup>2</sup>) brute force method
   * Accurate values for mass to better mimic stellar bodies in space.
+
+![QuadTree](https://github.com/squee72564/CPP-N-Particle-Simulator/blob/main/QuadTree.jpg?raw=true)
+![QuadTree 2](https://github.com/squee72564/CPP-N-Particle-Simulator/blob/main/QuadTree.jpg?raw=true)
+![Velocity Vectors](https://github.com/squee72564/CPP-N-Particle-Simulator/blob/main/VelocityVec.jpg?raw=true)
