@@ -14,18 +14,18 @@ class QuadTree {
 private:
   int m_level;
 
-  float height;
   float width;
-  
-  sf::RectangleShape m_rect;
-  
-  sf::Vector2f origin;
-  //sf::Vector2f com;
-  
+  float height;
+
+  bool isLeaf;
+
   std::array<QuadTree*, 4> m_subnode;
   std::vector<Particle> m_index;
 
-  bool isLeaf;
+  sf::RectangleShape m_rect;
+
+  //sf::Vector2f com;
+
 public:
 
   QuadTree();
