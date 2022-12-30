@@ -120,12 +120,11 @@ void QuadTree::insert(Particle& particle)
     return;
   }
 
-  // If not leaf check which subnode particle is contained in an insert into that subnode
+  // If not leaf check subnodes which particle is contained in and insert
   for (QuadTree* subNode : m_subnode) {
     if (subNode != nullptr && subNode->m_rect.getGlobalBounds().contains(particle.position))
     {
       subNode->insert(particle);
-      break;
     }
   }
 }
