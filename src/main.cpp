@@ -2,7 +2,7 @@
 //g++ -c -Wall .\src\main.cpp .\src\Particle.cpp .\src\ParticleSimulation.cpp -I"C:\SFML-2.5.1\include" -I"C:\SFML-2.5.1\bin" -I".\include\"
 
 #include "ParticleSimulation.hpp"
-#include <SFML/Graphics.hpp>
+//#include <SFML/Graphics.hpp>
 
 // Delta Time
 const float TIME_STEP = 0.003f;
