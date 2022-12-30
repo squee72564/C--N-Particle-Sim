@@ -33,8 +33,7 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
     velocityText.setFillColor(sf::Color::White); // Set the fill color of the text
 
     int level = 0;
-    QuadTree qt = QuadTree(level, WINDOW_HEIGHT, WINDOW_WIDTH);
-    quadTree = qt;
+    quadTree = QuadTree(level, WINDOW_WIDTH, WINDOW_HEIGHT);
 }
 
 ParticleSimulation::~ParticleSimulation()
