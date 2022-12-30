@@ -1,10 +1,6 @@
 #ifndef PARTICLE_SIMULATION
 #define PARTICLE_SIMULATION
 
-#include <string>
-#include <iostream>
-#include <list>
-#include <stack>
 #include "Simulation.hpp"
 #include "Particle.hpp"
 #include "QuadTree.hpp"
@@ -55,7 +51,6 @@ private:
 
 public:
     ParticleSimulation(float dt, const sf::Vector2f &g, sf::RenderWindow &window);
-    ParticleSimulation(ParticleSimulation& sim);
     virtual ~ParticleSimulation();
     void run();
     void pollUserEvent();

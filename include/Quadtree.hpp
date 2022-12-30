@@ -3,7 +3,6 @@
 #include <SFML/Graphics.hpp> // Include the SFML graphics library
 #include <array>
 #include <vector>
-#include <iostream>
 #include <algorithm>
 #include "Particle.hpp"
 
