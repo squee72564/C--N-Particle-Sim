@@ -1,13 +1,12 @@
 #ifndef QUADTREE
 #define QUADTREE
-#include <SFML/Graphics.hpp> // Include the SFML graphics library
 #include <array>
 #include <vector>
 #include <algorithm>
 #include "Particle.hpp"
 
-static const int NODE_CAPACITY = 1; //This is the capacity at which the quadtree splits; 1 means it divides until max depthj
-static const int NODE_MAX_DEPTH = 6;
+static const int NODE_CAPACITY = 2; //This is the capacity at which the quadtree splits; 1 means it divides until max depth
+static const int NODE_MAX_DEPTH = 7;
 
 class QuadTree {
 private:
@@ -23,7 +22,8 @@ private:
 
   sf::RectangleShape m_rect;
 
-  //sf::Vector2f com;
+  sf::Vector2f com;
+  int mass;
 
 public:
 
@@ -37,10 +37,16 @@ public:
   void split();
   void display(sf::RenderWindow* gameWindow);
   void insert(Particle& particle);
+  void update(float dt, Particle& particle);
   void deleteTree();
 };
 
-inline bool operator==(const Particle& lhs, const Particle& rhs);
-//inline bool operator!=(const X& lhs, const X& rhs){return !operator==(lhs,rhs);}
+template <typename T>
+inline float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2);
+
+inline float inv_Sqrt(float number);
+
+// inline bool operator==(const Particle& lhs, const Particle& rhs);
+// inline bool operator!=(const X& lhs, const X& rhs){return !operator==(lhs,rhs);}
 
 #endif

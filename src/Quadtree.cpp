@@ -13,6 +13,8 @@ QuadTree::QuadTree()
   m_rect.setOutlineColor(sf::Color(0,255,0,45));
   m_rect.setOutlineThickness(1);
   m_rect.setFillColor(sf::Color::Transparent);
+  mass = 0;
+  com = sf::Vector2f(0,0);
 }
 
 // This constructor is used for all subnodes and takes in a position.
@@ -30,6 +32,8 @@ QuadTree::QuadTree(const int m_level, sf::Vector2f position, float w, float h)
   m_rect.setOutlineColor(sf::Color(0,255,0,45));
   m_rect.setOutlineThickness(1);
   m_rect.setFillColor(sf::Color::Transparent);
+  mass = 0;
+  com = sf::Vector2f(0,0);
 }
 
 //This constructor is used for the root node and does not take in a starting position
@@ -46,6 +50,8 @@ QuadTree::QuadTree(const int m_level, float w, float h)
   m_rect.setOutlineColor(sf::Color(0,255,0,45));
   m_rect.setOutlineThickness(1);
   m_rect.setFillColor(sf::Color::Transparent);
+  mass = 0;
+  com = sf::Vector2f(0,0);
 }
 
 QuadTree::QuadTree(const QuadTree& qt)
@@ -61,6 +67,8 @@ QuadTree::QuadTree(const QuadTree& qt)
   m_rect.setOutlineColor(sf::Color(0,255,0,45));
   m_rect.setOutlineThickness(1);
   m_rect.setFillColor(sf::Color::Transparent);
+  mass = qt.mass;
+  com = qt.com;
 }
 
 // QuadTree::QuadTree(QuadTree&& qt)
@@ -90,6 +98,8 @@ void QuadTree::split()
     }
   }
   m_index.clear();
+  //mass = 0;
+  //com = sf::Vector2f(0,0);
 }
 
 void QuadTree::display(sf::RenderWindow* gameWindow)
@@ -112,20 +122,83 @@ void QuadTree::insert(Particle& particle)
   {
     m_index.push_back(particle);
 
-    if (m_index.size() > NODE_CAPACITY && m_level <= NODE_MAX_DEPTH)
+    if (m_index.size() > NODE_CAPACITY && m_level < NODE_MAX_DEPTH)
     {
-      this->split();
+      split();
+    }
+    else
+    {
+      for (Particle& p : m_index)
+      {
+        mass += p.mass;
+        com.x += p.position.x * p.mass;
+        com.y += p.position.y * p.mass;
+      }
     }
 
     return;
   }
 
-  // If not leaf check subnodes which particle is contained in and insert
+  // If not leaf check subnode which particle is contained in and insert
   for (QuadTree* subNode : m_subnode) {
-    if (subNode != nullptr && subNode->m_rect.getGlobalBounds().contains(particle.position))
+    if (subNode->m_rect.getGlobalBounds().contains(particle.position))
     {
       subNode->insert(particle);
+      break;
     }
+  }
+}
+
+void QuadTree::update(float dt, Particle& particle)
+{
+  if (!isLeaf)
+  {
+    m_subnode[0]->update(dt, particle);
+    m_subnode[1]->update(dt, particle);
+    m_subnode[2]->update(dt, particle);
+    m_subnode[3]->update(dt, particle);
+    return;
+  }
+
+  if (m_rect.getGlobalBounds().contains(particle.position))
+  {
+    for (Particle& other : m_index)
+    {
+      if (&other == &particle) { continue; }
+      
+      float distanceSquared = dot(particle.position - other.position, particle.position - other.position);
+      
+      if (distanceSquared != 0 && distanceSquared > (particle.radius + other.radius) * (particle.radius + other.radius))
+      {
+        float acceleration = (other.mass / distanceSquared) * BIG_G;
+
+        particle.velocity += (acceleration * dt) * (other.position - particle.position);
+      }
+
+      if (distanceSquared != 0 && distanceSquared <= (particle.radius + other.radius) * (particle.radius + other.radius))
+      {
+        sf::Vector2f rHat = (other.position - particle.position) * inv_Sqrt(distanceSquared);
+
+        float a1 = dot(particle.velocity, rHat);
+        float a2 = dot(other.velocity, rHat);
+        
+        float p = 2 * particle.mass * other.mass * (a1-a2)/(particle.mass + other.mass);
+
+        particle.velocity -= p/particle.mass * (rHat);
+        other.velocity += p/other.mass * (rHat); 
+      }
+    }
+
+    particle.position += particle.velocity * dt;
+  }
+  else if (!m_rect.getGlobalBounds().contains(particle.position) && !m_index.empty())
+  {
+    com.x /= mass;
+    com.y /= mass;
+    float distanceSquared = dot(particle.position - com, particle.position - com);
+    float acceleration = (mass / distanceSquared) * BIG_G;
+    particle.velocity += (acceleration * dt) * (com - particle.position);
+    particle.position += particle.velocity * dt;
   }
 }
 
@@ -139,8 +212,8 @@ void QuadTree::deleteTree()
   }
 
   // Loop through subNodes for current node of QuadTree
-  for (QuadTree* subNode : m_subnode) {
-
+  for (QuadTree* subNode : m_subnode)
+  {
     if (subNode == nullptr) //If one is nullptr all are nullptr so break
     {
       break;
@@ -166,3 +239,14 @@ void QuadTree::deleteTree()
   }
 }
 
+template <typename T>
+inline float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2)
+{
+    return (vec1.x * vec2.x) + (vec1.y * vec2.y);
+}
+
+inline float inv_Sqrt(float number)
+{
+    float squareRoot = sqrt(number);
+    return 1.0f / squareRoot;
+}
