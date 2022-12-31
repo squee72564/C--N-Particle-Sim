@@ -157,31 +157,40 @@ void ParticleSimulation::updateAndDraw()
     gameWindow->draw(particleCountText);
     gameWindow->draw(particleMassText);
 
-    // Update and draw all the particles
+    // Insert particles into QuadTree
     for (auto it = particles.begin(); it != particles.end(); ++it)
     {
+        // Check if the particle's position is outside the window bounds
+        if (it->position.x < 0 || it->position.x > WINDOW_WIDTH || it->position.y > WINDOW_HEIGHT)
+        {
+            // If the particle is outside the window bounds, erase it from the list and continue
+            it = particles.erase(it);
+            continue;
+        }
+
+        // Insert valid particle into QuadTree
+        quadTree.insert(*it);
+    }
+    
+    for (auto it = particles.begin(); it != particles.end(); ++it)
+    {   
         if (!isPaused)
         {
-            // Check if the particle's position is outside the window bounds
-            if (it->position.x < 0 || it->position.x > WINDOW_WIDTH || it->position.y > WINDOW_HEIGHT)
-            {
-                // If the particle is outside the window bounds, erase it from the list and continue
-                it = particles.erase(it);
-                continue;
-            }
-
             it->velocity += gravity; // Apply gravity to the velocity
+
+            // Update the particle's position based on other particles O(n^2)
+            // it->update(timeStep, particles);
+
+            // Update position of particle based on Quadtree
+            quadTree.update(timeStep, *it);
 
             // If RMB Pressed apply attractive force
             if (isRightButtonPressed)
             {
                 current_mousePosF = getMousePostion(*gameWindow, current_mousePos);
-                sf::Vector2f tempForce = sf::Vector2f(0.3 * (it->position.x - current_mousePosF.x), 0.3 * (it->position.y - current_mousePosF.y));
+                sf::Vector2f tempForce = sf::Vector2f(0.1 * (it->position.x - current_mousePosF.x), 0.1 * (it->position.y - current_mousePosF.y));
                 it->velocity -= tempForce;
             }
-
-            // Update the particle's position based on other particles O(n^2)
-            it->update(timeStep, particles);
         }
 
         it->shape.setPosition(it->position);
@@ -190,16 +199,14 @@ void ParticleSimulation::updateAndDraw()
         // create visual for particle's velocity vector if toggled
         if (showVelocity)  {
             sf::VertexArray line(sf::Lines, 2);
-            line[1].position.x = (it->position.x + it->velocity.x/30);
-            line[1].position.y = (it->position.y + it->velocity.y/30);
+            line[1].position.x = (it->position.x + it->velocity.x/10);
+            line[1].position.y = (it->position.y + it->velocity.y/10);
             line[0].position = it->position;
             line[0].color  = sf::Color(0,0,255,255);
             line[1].color = sf::Color(255,0,0,0);
             
             gameWindow->draw(line); // Draw the velocity vector
         }
-
-        quadTree.insert(*it);
     }
 
     //Recursively draw QuadTree rectangles
