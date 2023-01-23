@@ -4,7 +4,7 @@
 #include "ParticleSimulation.hpp"
 
 // Delta Time
-const float TIME_STEP = 0.003f;
+const float TIME_STEP = 0.001f;
 
 // Window dimensions
 const int WINDOW_WIDTH = 1280;
@@ -20,7 +20,7 @@ int main()
     sf::Vector2f grav = sf::Vector2f(0,0);
 
     //Start Particle Simulation
-    ParticleSimulation particleSimulation(0.003f, grav, window);
+    ParticleSimulation particleSimulation(TIME_STEP, grav, window);
     particleSimulation.run();
 
     return 0;
