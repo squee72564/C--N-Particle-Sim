@@ -34,6 +34,9 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
 
     int level = 0;
     quadTree = QuadTree(level, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+    isRightButtonPressed = false;
+    isAiming = false;
 }
 
 ParticleSimulation::~ParticleSimulation()
@@ -59,7 +62,8 @@ void ParticleSimulation::pollUserEvent()
     // Check for events
     while (gameWindow->pollEvent(event))
     {
-        switch (event.type) {
+        switch (event.type)
+        {
             case sf::Event::Closed:
                 gameWindow->close(); // Close the window
                 break;
@@ -132,11 +136,12 @@ void ParticleSimulation::updateAndDraw()
     quadTree.deleteTree();
 
     // If LMB is pressed, create line for aim and show angle
-    if (isAiming) {
+    if (isAiming)
+    {
         current_mousePosF = getMousePostion(*gameWindow, current_mousePos);
 
         velocityText.setPosition(initial_mousePosF.x+5, initial_mousePosF.y);
-        velocityText.setString(std::to_string( abs( (atan( (initial_mousePosF.y - current_mousePosF.y)/(initial_mousePosF.x - current_mousePosF.x) ) * 180) / 3.14) ));
+        velocityText.setString(std::to_string( abs( ( atan( (initial_mousePosF.y - current_mousePosF.y) / (initial_mousePosF.x - current_mousePosF.x) ) * 180 ) / 3.14) ));
 
         sf::VertexArray line(sf::Lines, 2);
         line[0].position = initial_mousePosF;
@@ -157,7 +162,7 @@ void ParticleSimulation::updateAndDraw()
     gameWindow->draw(particleCountText);
     gameWindow->draw(particleMassText);
 
-    // Insert particles into QuadTree
+    // Insert particles into QuadTree or erase if off screen
     for (auto it = particles.begin(); it != particles.end(); ++it)
     {
         // Check if the particle's position is outside the window bounds
@@ -172,36 +177,37 @@ void ParticleSimulation::updateAndDraw()
         quadTree.insert(*it);
     }
     
-    for (auto it = particles.begin(); it != particles.end(); ++it)
-    {   
+    for (Particle &particle : particles)
+    {
         if (!isPaused)
         {
-            it->velocity += gravity; // Apply gravity to the velocity
+            //particle.velocity += gravity; // Apply gravity to the velocity
 
             // Update the particle's position based on other particles O(n^2)
-            // it->update(timeStep, particles);
+            // particle.update(timeStep, particles);
 
             // Update position of particle based on Quadtree
-            quadTree.update(timeStep, *it);
+            quadTree.update(timeStep, particle);
 
             // If RMB Pressed apply attractive force
             if (isRightButtonPressed)
             {
                 current_mousePosF = getMousePostion(*gameWindow, current_mousePos);
-                sf::Vector2f tempForce = sf::Vector2f(0.1 * (it->position.x - current_mousePosF.x), 0.1 * (it->position.y - current_mousePosF.y));
-                it->velocity -= tempForce;
+                sf::Vector2f tempForce = sf::Vector2f(0.4 * (particle.position.x - current_mousePosF.x), 0.4 * (particle.position.y - current_mousePosF.y));
+                particle.velocity -= tempForce;
             }
         }
 
-        it->shape.setPosition(it->position);
-        gameWindow->draw(it->shape); // Draw the particle's shape
+        particle.shape.setPosition(particle.position);
+        gameWindow->draw(particle.shape); // Draw the particle's shape
 
         // create visual for particle's velocity vector if toggled
-        if (showVelocity)  {
+        if (showVelocity)
+        {
             sf::VertexArray line(sf::Lines, 2);
-            line[1].position.x = (it->position.x + it->velocity.x/10);
-            line[1].position.y = (it->position.y + it->velocity.y/10);
-            line[0].position = it->position;
+            line[1].position.x = (particle.position.x + particle.velocity.x/50);
+            line[1].position.y = (particle.position.y + particle.velocity.y/50);
+            line[0].position = particle.position;
             line[0].color  = sf::Color(0,0,255,255);
             line[1].color = sf::Color(255,0,0,0);
             
@@ -210,7 +216,8 @@ void ParticleSimulation::updateAndDraw()
     }
 
     //Recursively draw QuadTree rectangles
-    if (showQuadTree) {
+    if (showQuadTree)
+    {
         quadTree.display(gameWindow);
     }
 
