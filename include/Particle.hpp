@@ -16,7 +16,8 @@ public:
     float mass; // Mass of the particle
     float radius;
     sf::CircleShape shape; // Circle shape to represent the particle
-   
+    sf::Vector2f acceleration;
+
     Particle();
     Particle(sf::Vector2f pos, sf::Vector2f vel, float m, std::mt19937& gen, std::uniform_int_distribution<>& dis);
     Particle(const Particle& particle);
