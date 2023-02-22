@@ -55,6 +55,9 @@ public:
     void run();
     void pollUserEvent();
     void updateAndDraw();
+    void drawAimLine();
+    void drawParticleVelocity(Particle& particle);
+    void attractParticleToMousePos(Particle& particle);
 };
 
 sf::Vector2f getMousePostion(const sf::RenderWindow &window, sf::Vector2i &mousePos);

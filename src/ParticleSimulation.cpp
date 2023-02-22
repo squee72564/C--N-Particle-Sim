@@ -132,25 +132,15 @@ void ParticleSimulation::pollUserEvent()
 
 void ParticleSimulation::updateAndDraw()
 {
-    gameWindow->clear(); // Clear the window
+    // Clear the window graphics
+    gameWindow->clear(); 
+    // Clear Quadtree
     quadTree.deleteTree();
 
     // If LMB is pressed, create line for aim and show angle
     if (isAiming)
     {
-        current_mousePosF = getMousePostion(*gameWindow, current_mousePos);
-
-        velocityText.setPosition(initial_mousePosF.x+5, initial_mousePosF.y);
-        velocityText.setString(std::to_string( abs( ( atan( (initial_mousePosF.y - current_mousePosF.y) / (initial_mousePosF.x - current_mousePosF.x) ) * 180 ) / 3.14) ));
-
-        sf::VertexArray line(sf::Lines, 2);
-        line[0].position = initial_mousePosF;
-        line[1].position = current_mousePosF;
-        line[0].color  = sf::Color(0, 255, 0, 155);
-        line[1].color = sf::Color(0, 255, 0, 25);
-        
-        gameWindow->draw(velocityText);
-        gameWindow->draw(line);
+	drawAimLine();
     }
     
     // Update the particle count & mass text
@@ -180,10 +170,8 @@ void ParticleSimulation::updateAndDraw()
     {
         if (!isPaused)
         {
-            //particle.velocity += gravity; // Apply gravity to the velocity
-
-            // Update the particle's position based on other particles O(n^2)
-            // particle.update(timeStep, particles);
+	    // Apply gravity to the velocity
+            particle.velocity += gravity; 
 
             // Update position of particle based on Quadtree
             quadTree.update(timeStep, particle);
@@ -191,26 +179,20 @@ void ParticleSimulation::updateAndDraw()
             // If RMB Pressed apply attractive force
             if (isRightButtonPressed)
             {
-                current_mousePosF = getMousePostion(*gameWindow, current_mousePos);
-                sf::Vector2f tempForce = sf::Vector2f(0.4 * (particle.position.x - current_mousePosF.x), 0.4 * (particle.position.y - current_mousePosF.y));
-                particle.velocity -= tempForce;
+                attractParticleToMousePos(particle);
             }
         }
 
+	// Set particle circle shape to new position
         particle.shape.setPosition(particle.position);
-        gameWindow->draw(particle.shape); // Draw the particle's shape
+	
+	// Draw the particle's shape
+        gameWindow->draw(particle.shape); 
 
         // create visual for particle's velocity vector if toggled
         if (showVelocity)
         {
-            sf::VertexArray line(sf::Lines, 2);
-            line[1].position.x = (particle.position.x + particle.velocity.x/50);
-            line[1].position.y = (particle.position.y + particle.velocity.y/50);
-            line[0].position = particle.position;
-            line[0].color  = sf::Color(0,0,255,255);
-            line[1].color = sf::Color(255,0,0,0);
-            
-            gameWindow->draw(line); // Draw the velocity vector
+	    drawParticleVelocity(particle);
         }
     }
 
@@ -219,14 +201,60 @@ void ParticleSimulation::updateAndDraw()
     {
         quadTree.display(gameWindow);
     }
+    
+    // Display the window
+    gameWindow->display(); 
+}
 
-    gameWindow->display(); // Display the window
+void ParticleSimulation::drawAimLine() {	
+    // Get current mouse position
+    current_mousePosF = getMousePostion(*gameWindow, current_mousePos);
+
+    // Setting text position and value for angle
+    velocityText.setPosition(initial_mousePosF.x+5, initial_mousePosF.y);
+    velocityText.setString(std::to_string( abs( ( atan( (initial_mousePosF.y - current_mousePosF.y) / (initial_mousePosF.x - current_mousePosF.x) ) * 180 ) / 3.14) ));
+
+    // Create VertexArray from initial to current position
+    sf::VertexArray line(sf::Lines, 2);
+    line[0].position = initial_mousePosF;
+    line[1].position = current_mousePosF;
+    line[0].color  = sf::Color(0, 255, 0, 155);
+    line[1].color = sf::Color(0, 255, 0, 25);
+        
+    // Draw VertexArray and text to screen
+    gameWindow->draw(velocityText);
+    gameWindow->draw(line);
+}
+
+void ParticleSimulation::drawParticleVelocity(Particle& particle) {
+    // Create VertexArray from particle position to velocity vector of particle
+    sf::VertexArray line(sf::Lines, 2);
+    line[1].position.x = (particle.position.x + particle.velocity.x/50);
+    line[1].position.y = (particle.position.y + particle.velocity.y/50);
+    line[0].position = particle.position;
+    line[0].color  = sf::Color(0,0,255,255);
+    line[1].color = sf::Color(255,0,0,0);
+   
+    // Draw the velocity vector
+    gameWindow->draw(line);
 }
 
 sf::Vector2f getMousePostion(const sf::RenderWindow &window, sf::Vector2i &mousePos)
 {
     // Get the mouse position
     mousePos = sf::Mouse::getPosition(window);
+
     // Convert the mouse position to a float vector
     return sf::Vector2f(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
+}
+
+void ParticleSimulation::attractParticlesToMousePos(Particle& particle) {
+    // Get current mouse position
+    current_mousePosF = getMousePostion(*gameWindow, current_mousePos);
+
+    // Create force vector from particle to mouse
+    sf::Vector2f tempForce = sf::Vector2f(0.4 * (particle.position.x - current_mousePosF.x), 0.4 * (particle.position.y - current_mousePosF.y));
+
+    // Apply attractive force to particle velocity
+    particle.velocity -= tempForce;
 }
