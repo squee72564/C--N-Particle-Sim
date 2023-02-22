@@ -1,7 +1,6 @@
 #ifndef PARTICLE
 #define PARTICLE
 #include <random>
-#include <list> // Include the vector container
 #include <SFML/Graphics.hpp> // Include the SFML graphics library
 #include <math.h>
 
