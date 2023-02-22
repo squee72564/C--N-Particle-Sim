@@ -153,47 +153,48 @@ void ParticleSimulation::updateAndDraw()
     gameWindow->draw(particleMassText);
 
     // Insert particles into QuadTree or erase if off screen
-    for (auto it = particles.begin(); it != particles.end(); ++it)
+    for (std::size_t i = 0; i < particles.size(); i++)
     {
         // Check if the particle's position is outside the window bounds
-        if (it->position.x < 0 || it->position.x > WINDOW_WIDTH || it->position.y > WINDOW_HEIGHT)
+        if (particles[i].position.x < 0 || particles[i].position.x > WINDOW_WIDTH || particles[i].position.y > WINDOW_HEIGHT)
         {
-            // If the particle is outside the window bounds, erase it from the list
-            it = particles.erase(it);
+            // If the particle is outside the window bounds, swap and pop from vector 
+	    std::swap(particles[i], particles.back());
+	    particles.pop_back();
         } else {
             // Insert valid particle into QuadTree
-            quadTree.insert(*it);
+            quadTree.insert(particles[i]);
         }
     }
     
     // Apply forces and draw each particle in QuadTree
-    for (Particle &particle : particles)
+    for (std::size_t i = 0; i < particles.size(); i++)
     {
         if (!isPaused)
         {
 	    // Apply gravity to the velocity
-            particle.velocity += gravity; 
+            particles[i].velocity += gravity; 
 
             // Update position of particle based on Quadtree
-            quadTree.update(timeStep, particle);
+            quadTree.update(timeStep, particles[i]);
 
             // If RMB Pressed apply attractive force
             if (isRightButtonPressed)
             {
-                attractParticleToMousePos(particle);
+                attractParticleToMousePos(particles[i]);
             }
         }
 
 	// Set particle circle shape to new position
-        particle.shape.setPosition(particle.position);
+        particles[i].shape.setPosition(particles[i].position);
 	
 	// Draw the particle's shape
-        gameWindow->draw(particle.shape); 
+        gameWindow->draw(particles[i].shape); 
 
         // Create visual for particle's velocity vector if toggled
         if (showVelocity)
         {
-	    drawParticleVelocity(particle);
+	    drawParticleVelocity(particles[i]);
         }
     }
 

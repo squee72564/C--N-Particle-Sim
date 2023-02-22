@@ -4,6 +4,7 @@
 #include "Simulation.hpp"
 #include "Particle.hpp"
 #include "QuadTree.hpp"
+#include <vector>
 
 class ParticleSimulation : Simulation
 {
@@ -17,7 +18,7 @@ private:
 
     QuadTree quadTree;
 
-    std::list<Particle> particles;
+    std::vector<Particle> particles;
 
     sf::Vector2f gravity;
 
