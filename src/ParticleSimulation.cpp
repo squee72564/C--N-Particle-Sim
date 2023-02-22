@@ -166,6 +166,7 @@ void ParticleSimulation::updateAndDraw()
         }
     }
     
+    // Apply forces and draw each particle in QuadTree
     for (Particle &particle : particles)
     {
         if (!isPaused)
@@ -189,14 +190,14 @@ void ParticleSimulation::updateAndDraw()
 	// Draw the particle's shape
         gameWindow->draw(particle.shape); 
 
-        // create visual for particle's velocity vector if toggled
+        // Create visual for particle's velocity vector if toggled
         if (showVelocity)
         {
 	    drawParticleVelocity(particle);
         }
     }
 
-    //Recursively draw QuadTree rectangles
+    // Recursively draw QuadTree rectangles
     if (showQuadTree)
     {
         quadTree.display(gameWindow);
@@ -248,7 +249,7 @@ sf::Vector2f getMousePostion(const sf::RenderWindow &window, sf::Vector2i &mouse
     return sf::Vector2f(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
 }
 
-void ParticleSimulation::attractParticlesToMousePos(Particle& particle) {
+void ParticleSimulation::attractParticleToMousePos(Particle& particle) {
     // Get current mouse position
     current_mousePosF = getMousePostion(*gameWindow, current_mousePos);
 
