@@ -1,5 +1,5 @@
-//g++ .\main.o .\Particle.o .\ParticleSimulation.o .\Quadtree.o -o main -L"C:\SFML-2.5.1\lib" -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
 //g++ -c -Wall .\src\main.cpp .\src\Particle.cpp .\src\ParticleSimulation.cpp -I"C:\SFML-2.5.1\include" -I"C:\SFML-2.5.1\bin" -I".\include\"
+//g++ .\main.o .\Particle.o .\ParticleSimulation.o .\Quadtree.o -o main -L"C:\SFML-2.5.1\lib" -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
 
 #include "ParticleSimulation.hpp"
 
