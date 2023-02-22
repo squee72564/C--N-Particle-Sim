@@ -168,13 +168,12 @@ void ParticleSimulation::updateAndDraw()
         // Check if the particle's position is outside the window bounds
         if (it->position.x < 0 || it->position.x > WINDOW_WIDTH || it->position.y > WINDOW_HEIGHT)
         {
-            // If the particle is outside the window bounds, erase it from the list and continue
+            // If the particle is outside the window bounds, erase it from the list
             it = particles.erase(it);
-            continue;
+        } else {
+            // Insert valid particle into QuadTree
+            quadTree.insert(*it);
         }
-
-        // Insert valid particle into QuadTree
-        quadTree.insert(*it);
     }
     
     for (Particle &particle : particles)
