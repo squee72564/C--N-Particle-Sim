@@ -18,7 +18,7 @@ private:
   bool isLeaf;
 
   std::array<QuadTree*, 4> m_subnode;
-  std::vector<Particle> m_index;
+  std::vector<Particle*> m_index;
 
   sf::RectangleShape m_rect;
 
@@ -36,8 +36,8 @@ public:
   
   void split();
   void display(sf::RenderWindow* gameWindow);
-  void insert(Particle& particle);
-  void update(float dt, Particle& particle);
+  void insert(Particle* particle);
+  void update(float dt, Particle* particle);
   void deleteTree();
 };
 

@@ -81,11 +81,11 @@ void QuadTree::split()
     m_subnode[2] = new QuadTree(m_level + 1, sf::Vector2f(m_rect.getPosition().x, m_rect.getPosition().y + height/2), width/2, height/2);
     m_subnode[3] = new QuadTree(m_level + 1, sf::Vector2f(m_rect.getPosition().x + width/2, m_rect.getPosition().y + height/2), width/2, height/2);
 
-    for (Particle& particle : m_index)
+    for (Particle* particle : m_index)
     {
         for (QuadTree* subNode : m_subnode)
         {
-            if (subNode->m_rect.getGlobalBounds().contains(particle.position))
+            if (subNode->m_rect.getGlobalBounds().contains(particle->position))
             {
                 subNode->insert(particle);
                 break;
@@ -113,7 +113,7 @@ void QuadTree::display(sf::RenderWindow* gameWindow)
     m_subnode[3]->display(gameWindow);
 }
 
-void QuadTree::insert(Particle& particle)
+void QuadTree::insert(Particle* particle)
 {
     //If Quadtree node is a leaf node, insert and split if node greater than capacity
     if (isLeaf)
@@ -126,9 +126,9 @@ void QuadTree::insert(Particle& particle)
         }
         else
         {
-            totalMass += particle.mass;
-            com.x += particle.position.x * particle.mass;
-            com.y += particle.position.y * particle.mass;
+            totalMass += particle->mass;
+            com.x += particle->position.x * particle->mass;
+            com.y += particle->position.y * particle->mass;
         }
       
         return;
@@ -137,7 +137,7 @@ void QuadTree::insert(Particle& particle)
     // If not leaf check subnode which particle is contained in and insert
     for (QuadTree* subNode : m_subnode)
     {
-        if (subNode->m_rect.getGlobalBounds().contains(particle.position))
+        if (subNode->m_rect.getGlobalBounds().contains(particle->position))
         {
             subNode->insert(particle);
             break;
@@ -145,7 +145,7 @@ void QuadTree::insert(Particle& particle)
     }
 }
 
-void QuadTree::update(float dt, Particle& particle)
+void QuadTree::update(float dt, Particle* particle)
 {
     if (!isLeaf)
     {
@@ -154,33 +154,33 @@ void QuadTree::update(float dt, Particle& particle)
         m_subnode[2]->update(dt, particle);
         m_subnode[3]->update(dt, particle);
     }
-    else if (m_rect.getGlobalBounds().contains(particle.position))
+    else if (m_rect.getGlobalBounds().contains(particle->position))
     {
-        for (Particle& other : m_index)
+        for (Particle* other : m_index)
         {
-            if (&other == &particle)
+            if (other == particle)
             {
-            continue;
+	        continue;
             }
         
-            float distanceSquared = dot(particle.position - other.position, particle.position - other.position);
+            float distanceSquared = dot(particle->position - other->position, particle->position - other->position);
             
-            if (distanceSquared != 0 && distanceSquared > (particle.radius + other.radius) * (particle.radius + other.radius))
+            if (distanceSquared != 0 && distanceSquared > (particle->radius + other->radius) * (particle->radius + other->radius))
             {
-                particle.acceleration -= (other.mass / distanceSquared) * BIG_G * (other.position - particle.position);
+                particle->acceleration -= (other->mass / distanceSquared) * BIG_G * (other->position - particle->position);
             }
 
-            if (distanceSquared != 0 && distanceSquared <= (particle.radius + other.radius) * (particle.radius + other.radius))
+            if (distanceSquared != 0 && distanceSquared <= (particle->radius + other->radius) * (particle->radius + other->radius))
             {
-                sf::Vector2f rHat = (other.position - particle.position) * inv_Sqrt(distanceSquared);
+               sf::Vector2f rHat = (other->position - particle->position) * inv_Sqrt(distanceSquared);
 
-                float a1 = dot(particle.velocity, rHat);
-                float a2 = dot(other.velocity, rHat);
+                float a1 = dot(particle->velocity, rHat);
+                float a2 = dot(other->velocity, rHat);
               
-                float p = 2 * particle.mass * other.mass * (a1-a2)/(particle.mass + other.mass);
+                float p = 2 * particle->mass * other->mass * (a1-a2)/(particle->mass + other->mass);
 
-                particle.velocity -= p/particle.mass * (rHat);
-                other.velocity += p/other.mass * (rHat);
+                particle->velocity -= p/particle->mass * (rHat);
+                other->velocity += p/other->mass * (rHat);
             }
         }    
     }
@@ -188,14 +188,17 @@ void QuadTree::update(float dt, Particle& particle)
     {
         float x = com.x / totalMass;
         float y = com.y / totalMass;
-        float distanceSquared = dot(particle.position - sf::Vector2f(x,y), particle.position - sf::Vector2f(x,y));
-        particle.acceleration += (totalMass / distanceSquared) * BIG_G * (sf::Vector2f(x,y) - particle.position);
+        float distanceSquared = dot(particle->position - sf::Vector2f(x,y), particle->position - sf::Vector2f(x,y));
+        particle->acceleration += (totalMass / distanceSquared) * BIG_G * (sf::Vector2f(x,y) - particle->position);
     }
 
+    // This calculates the new position and velocity after summing all the forces on the particle
     if (m_level == 0)
     {
-        particle.velocity += particle.acceleration * dt;
-        particle.position += particle.velocity * dt;
+        particle->velocity += particle->acceleration * dt;
+        particle->position += particle->velocity * dt;
+	particle->acceleration.x = 0.0f;
+	particle->acceleration.y = 0.0f;
     }
 }
 
@@ -204,7 +207,8 @@ void QuadTree::deleteTree()
     // If we are at the base node and it is the leaf clear Particle vector and return;
     if (m_level == 0 && isLeaf)
     {
-        com = sf::Vector2f(0,0);
+        com.x = 0.0f;
+	com.y = 0.0f;
         totalMass = 0;
         m_index.clear();
         return;
