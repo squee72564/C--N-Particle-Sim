@@ -36,6 +36,13 @@ Implemented so far:
   * Better UI such as font and additional information for graphical elements toggled on/off
   * Optimize code further
 
+QuadTree Examples
 ![QuadTree](https://i.imgur.com/98WA83t.png)
 ![QuadTree 2](https://i.imgur.com/d6xDlIX.png)
+
+Velocity Vector Example
 ![Velocity Vectors](https://i.imgur.com/41bDXTd.png)
+
+Example Gifs (excuse the low quality)
+![Gif1](https://github.com/squee72564/CPP-N-Particle-Simulator/blob/main/docs/gif1.gif)
+![Gif2](https://github.com/squee72564/CPP-N-Particle-Simulator/blob/main/docs/gif2.gif)
