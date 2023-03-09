@@ -4,7 +4,7 @@
 #include "ParticleSimulation.hpp"
 
 // Delta Time
-const float TIME_STEP = 0.001f;
+const float TIME_STEP = 0.002f;
 
 // Window dimensions
 const int WINDOW_WIDTH = 1280;
