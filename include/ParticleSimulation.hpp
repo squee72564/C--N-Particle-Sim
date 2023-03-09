@@ -4,6 +4,7 @@
 #include "Simulation.hpp"
 #include "Particle.hpp"
 #include "QuadTree.hpp"
+#include <vector>
 
 class ParticleSimulation : Simulation
 {
@@ -17,7 +18,7 @@ private:
 
     QuadTree quadTree;
 
-    std::list<Particle> particles;
+    std::vector<Particle> particles;
 
     sf::Vector2f gravity;
 
@@ -55,6 +56,9 @@ public:
     void run();
     void pollUserEvent();
     void updateAndDraw();
+    void drawAimLine();
+    void drawParticleVelocity(Particle& particle);
+    void attractParticleToMousePos(Particle& particle);
 };
 
 sf::Vector2f getMousePostion(const sf::RenderWindow &window, sf::Vector2i &mousePos);
