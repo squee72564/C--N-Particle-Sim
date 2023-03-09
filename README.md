@@ -18,22 +18,23 @@ Implemented so far:
     - Click and drag `Left Click` to launch a particle. Click and release the same spot without dragging to start with 0 velocity.
     - `Z` key to increase particle size/mass by 1
     - `X` key to decrease particle size/mass by 1
-  * `Right Click` to attrack particles to mouse position
+  * `Right Click` to attract particles to mouse position
   * `I` key to show visualizations for particle velocity.
   * `G` key to show visualization for the quad tree.
-  * Particles are inserted into QuadTree and QuadTree is built accordingly
   * Basic gravitational attraction between particles
-    - Done in O(n<sup>2</sup>) brute force method right now
   * Basic particle collision when particles touch
-    - Checks O(n<sup>2</sup>) brute force method right now
     
-I plant to impelment the following features:
   * 2-D Barnes–Hut simulation
     - QuadTree to track collisions
-    - Particle collisions need only be considered in nearby Quadtree cell
-    - Particles from nearby QuadTree cells need to attract individually, and particles in distant cells can be treated as a single large particle centered at the cell's center of mass
+    - Particle collisions need only be considered in same Quadtree cell
+    - Particles from same QuadTree cells need to attract individually, and particles in distant cells can be treated as a single large particle centered at the cell's center of mass
     - Works in O(nlogn) as opposed to O(n<sup>2</sup>) brute force method
-  * Accurate values for mass to better mimic stellar bodies in space.
+
+  TODO:
+  * Determine better values for delta time, gravitational constant, and particle masses to create a smoother and more realistic simulation
+  * Fix collisions so that particles cannot get stuck together
+  * Better UI such as font and additional information for graphical elements toggled on/off
+  * Optimize code further
 
 ![QuadTree](https://i.imgur.com/98WA83t.png)
 ![QuadTree 2](https://i.imgur.com/d6xDlIX.png)
