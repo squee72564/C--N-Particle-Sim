@@ -5,7 +5,7 @@
 #include <math.h>
 
 static const float REFLECTION_FACTOR = 0.015f;
-static const float BIG_G = 1000.0f;
+static const float BIG_G = 2000.0f;
 
 class Particle
 {
