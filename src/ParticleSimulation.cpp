@@ -3,9 +3,8 @@
 ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window)
 {
     gameWindow = &window;
-    WINDOW_WIDTH = window.getSize().x;
-    WINDOW_HEIGHT = window.getSize().y;
-
+    windowWidth = window.getSize().x;
+    windowHeight = window.getSize().y;
 
     timeStep = dt;
     gravity = g;
@@ -13,27 +12,26 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
     gen = std::mt19937(rd());
     dis = std::uniform_int_distribution<>(0, 255);
 
-    !font.loadFromFile("fonts/ALGER.TTF");
+    font.loadFromFile("fonts/corbel.TTF");
 
-    particleCountText.setFont(font); // Set the font of the text
-    particleCountText.setCharacterSize(24); // Set the size of the text
-    particleCountText.setFillColor(sf::Color::White); // Set the fill color of the text
+    particleCountText.setFont(font);
+    particleCountText.setCharacterSize(24);
+    particleCountText.setFillColor(sf::Color::White);
     particleCountText.setOutlineColor(sf::Color::Blue);
     particleCountText.setOutlineThickness(1.0f);
 
-    particleMassText.setFont(font); // Set the font of the text
-    particleMassText.setCharacterSize(12); // Set the size of the text
-    particleMassText.setFillColor(sf::Color::White); // Set the fill color of the text
+    particleMassText.setFont(font);
+    particleMassText.setCharacterSize(12);
+    particleMassText.setFillColor(sf::Color::White);
     particleMassText.setPosition(0, 100);
     particleMassText.setOutlineColor(sf::Color::Blue);
     particleMassText.setOutlineThickness(1.0f);
 
     velocityText.setFont(font);
-    velocityText.setCharacterSize(10); // Set the size of the text
-    velocityText.setFillColor(sf::Color::White); // Set the fill color of the text
+    velocityText.setCharacterSize(10);
+    velocityText.setFillColor(sf::Color::White);
 
-    int level = 0;
-    quadTree = QuadTree(level, WINDOW_WIDTH, WINDOW_HEIGHT);
+    quadTree = QuadTree(0, windowWidth, windowHeight);
 
     isRightButtonPressed = false;
     isAiming = false;
@@ -64,61 +62,73 @@ void ParticleSimulation::pollUserEvent()
     {
         switch (event.type)
         {
-            case sf::Event::Closed:
-                gameWindow->close(); // Close the window
+            case sf::Event::Closed:	// Window Closed
+                gameWindow->close();
                 break;
 
-            case sf::Event::KeyPressed:
+            case sf::Event::KeyPressed:	// Key press
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z))
                 {
                     if (particleMass < 10) { particleMass += 0.5; }
                 }
+
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::X))
                 {
                     if (particleMass > 1) { particleMass -= 0.5; }
                 }
+
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::I))
                 {
                     showVelocity = (showVelocity) ? false : true;
                 }
+
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::G))
                 {
                     showQuadTree = (showQuadTree) ? false : true;
                 }
+
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::P))
                 {
                     isPaused = (isPaused) ? false : true;
                 }
+
                 break;
 
-            case sf::Event::MouseButtonReleased:
+            case sf::Event::MouseButtonReleased: // RMB or LMB released
+
                 if (isRightButtonPressed && !sf::Mouse::isButtonPressed(sf::Mouse::Right))
                 {
                     isRightButtonPressed = false;
                 }
+
                 if (isAiming && !sf::Mouse::isButtonPressed(sf::Mouse::Left))
                 {
                     isAiming = false;
-                    final_mousePosF = getMousePostion(*gameWindow, final_mousePos);
+                    final_mousePosF = getMousePosition(*gameWindow);
                     particles.emplace_back(Particle(initial_mousePosF, initial_mousePosF-final_mousePosF, particleMass, gen , dis));
                 }
+
                 break;
 
-            case sf::Event::MouseButtonPressed:
+            case sf::Event::MouseButtonPressed:	// RMB or LMB pressed
+						
                 if (sf::Mouse::isButtonPressed(sf::Mouse::Right))
                 {
                     isRightButtonPressed = true;
-                    current_mousePosF = getMousePostion(*gameWindow, current_mousePos);
+                    current_mousePosF = getMousePosition(*gameWindow);
                 }
+
                 if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
                 {
                     isAiming = true;
-                    initial_mousePosF = getMousePostion(*gameWindow, initial_mousePos);
+                    initial_mousePosF = getMousePosition(*gameWindow);
                 }
+
                 break;
 
-            case sf::Event::MouseWheelScrolled:
-                current_mousePosF = getMousePostion(*gameWindow, current_mousePos);
+            case sf::Event::MouseWheelScrolled:	// Emplace particle at mouse position
+						
+                current_mousePosF = getMousePosition(*gameWindow);
 
                 // Add a new particle with 0 velocity
                 particles.emplace_back(Particle(current_mousePosF, sf::Vector2f(0,0), particleMass, gen , dis));
@@ -147,7 +157,6 @@ void ParticleSimulation::updateAndDraw()
     particleCountText.setString("Particle count: " + std::to_string(particles.size()));
     particleMassText.setString("Particle mass: " + std::to_string( int(particleMass) ));
     
-
     // Draw the particle count & mass text
     gameWindow->draw(particleCountText);
     gameWindow->draw(particleMassText);
@@ -156,7 +165,8 @@ void ParticleSimulation::updateAndDraw()
     for (std::size_t i = 0; i < particles.size(); i++)
     {
         // Check if the particle's position is outside the window bounds
-        if (particles[i].position.x < 0 || particles[i].position.x > WINDOW_WIDTH || particles[i].position.y > WINDOW_HEIGHT || particles[i].position.y < 0)
+        if (particles[i].position.x < 0 || particles[i].position.x > windowWidth ||
+			particles[i].position.y > windowHeight || particles[i].position.y < 0)
         {
             // If the particle is outside the window bounds, swap and pop from vector 
 	    std::swap(particles[i], particles.back());
@@ -208,13 +218,15 @@ void ParticleSimulation::updateAndDraw()
     gameWindow->display(); 
 }
 
-void ParticleSimulation::drawAimLine() {	
+void ParticleSimulation::drawAimLine() 
+{	
     // Get current mouse position
-    current_mousePosF = getMousePostion(*gameWindow, current_mousePos);
+    current_mousePosF = getMousePosition(*gameWindow);
 
     // Setting text position and value for angle
     velocityText.setPosition(initial_mousePosF.x+5, initial_mousePosF.y);
-    velocityText.setString(std::to_string( abs( ( atan( (initial_mousePosF.y - current_mousePosF.y) / (initial_mousePosF.x - current_mousePosF.x) ) * 180 ) / 3.14) ));
+    float t =  (initial_mousePosF.y - current_mousePosF.y) / (initial_mousePosF.x - current_mousePosF.x);
+    velocityText.setString(std::to_string( abs( ( atan(t) * 180 ) / 3.14) ));
 
     // Create VertexArray from initial to current position
     sf::VertexArray line(sf::Lines, 2);
@@ -228,7 +240,8 @@ void ParticleSimulation::drawAimLine() {
     gameWindow->draw(line);
 }
 
-void ParticleSimulation::drawParticleVelocity(Particle& particle) {
+void ParticleSimulation::drawParticleVelocity(Particle& particle) 
+{
     // Create VertexArray from particle position to velocity vector of particle
     sf::VertexArray line(sf::Lines, 2);
     line[1].position.x = (particle.position.x + particle.velocity.x/50);
@@ -241,22 +254,21 @@ void ParticleSimulation::drawParticleVelocity(Particle& particle) {
     gameWindow->draw(line);
 }
 
-sf::Vector2f getMousePostion(const sf::RenderWindow &window, sf::Vector2i &mousePos)
+void ParticleSimulation::attractParticleToMousePos(Particle& particle) 
 {
-    // Get the mouse position
-    mousePos = sf::Mouse::getPosition(window);
-
-    // Convert the mouse position to a float vector
-    return sf::Vector2f(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
-}
-
-void ParticleSimulation::attractParticleToMousePos(Particle& particle) {
     // Get current mouse position
-    current_mousePosF = getMousePostion(*gameWindow, current_mousePos);
+    current_mousePosF = getMousePosition(*gameWindow);
 
     // Create force vector from particle to mouse
-    sf::Vector2f tempForce = sf::Vector2f(0.4 * (particle.position.x - current_mousePosF.x), 0.4 * (particle.position.y - current_mousePosF.y));
+    sf::Vector2f tempForce = sf::Vector2f(0.4 * (particle.position.x - current_mousePosF.x),
+		    0.4 * (particle.position.y - current_mousePosF.y));
 
     // Apply attractive force to particle velocity
     particle.velocity -= tempForce;
+}
+
+sf::Vector2f getMousePosition(const sf::RenderWindow &window)
+{
+    // Get mouse position and convert to global coords 
+    return window.mapPixelToCoords(sf::Mouse::getPosition(window));
 }
