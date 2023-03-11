@@ -10,8 +10,8 @@ class ParticleSimulation : Simulation
 {
 private:
     // Game Window
-    int WINDOW_WIDTH;
-    int WINDOW_HEIGHT;
+    int windowWidth;
+    int windowHeight;
 
     // Delta Time
     float timeStep;
@@ -27,13 +27,10 @@ private:
     std::uniform_int_distribution<> dis;
 
     bool isRightButtonPressed;
-    sf::Vector2i current_mousePos;
     sf::Vector2f current_mousePosF;
 
     bool isAiming;
-    sf::Vector2i initial_mousePos;
     sf::Vector2f initial_mousePosF;
-    sf::Vector2i final_mousePos;
     sf::Vector2f final_mousePosF;
 
     bool showVelocity;
@@ -61,6 +58,6 @@ public:
     void attractParticleToMousePos(Particle& particle);
 };
 
-sf::Vector2f getMousePostion(const sf::RenderWindow &window, sf::Vector2i &mousePos);
+sf::Vector2f getMousePosition(const sf::RenderWindow &window);
 
 #endif
