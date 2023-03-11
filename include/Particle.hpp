@@ -10,15 +10,15 @@ static const float BIG_G = 2000.0f;
 class Particle
 {
 public:
-    sf::Vector2f position; // Position of the particle
-    sf::Vector2f velocity; // Velocity of the particle
-    float mass; // Mass of the particle
+    sf::Vector2f position;
+    sf::Vector2f velocity;
+    float mass;
     float radius;
-    sf::CircleShape shape; // Circle shape to represent the particle
+    sf::CircleShape shape;
     sf::Vector2f acceleration;
 
     Particle();
-    Particle(sf::Vector2f pos, sf::Vector2f vel, float m, std::mt19937& gen, std::uniform_int_distribution<>& dis);
+    Particle(const sf::Vector2f pos, const sf::Vector2f vel, float m, std::mt19937& gen, std::uniform_int_distribution<>& dis);
     Particle(const Particle& particle);
     ~Particle();
 };
