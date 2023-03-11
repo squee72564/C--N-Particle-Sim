@@ -5,7 +5,7 @@
 #include <algorithm>
 #include "Particle.hpp"
 
-static const int NODE_CAPACITY = 1; //This is the capacity at which the quadtree splits; 1 means it divides until max depth
+static const int NODE_CAPACITY = 3; //This is the capacity at which the quadtree splits; 1 means it divides until max depth
 static const int NODE_MAX_DEPTH = 7;
 
 class QuadTree {
