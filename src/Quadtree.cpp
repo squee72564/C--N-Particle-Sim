@@ -160,7 +160,7 @@ void QuadTree::update(float dt, Particle* particle)
         {
             if (other == particle)
             {
-	        continue;
+	            continue;
             }
         
             float distanceSquared = dot(particle->position - other->position, particle->position - other->position);
@@ -172,7 +172,7 @@ void QuadTree::update(float dt, Particle* particle)
 
             if (distanceSquared != 0 && distanceSquared <= (particle->radius + other->radius) * (particle->radius + other->radius))
             {
-               sf::Vector2f rHat = (other->position - particle->position) * inv_Sqrt(distanceSquared);
+                sf::Vector2f rHat = (other->position - particle->position) * inv_Sqrt(distanceSquared);
 
                 float a1 = dot(particle->velocity, rHat);
                 float a2 = dot(other->velocity, rHat);
@@ -197,8 +197,8 @@ void QuadTree::update(float dt, Particle* particle)
     {
         particle->velocity += particle->acceleration * dt;
         particle->position += particle->velocity * dt;
-	particle->acceleration.x = 0.0f;
-	particle->acceleration.y = 0.0f;
+	    particle->acceleration.x = 0.0f;
+	    particle->acceleration.y = 0.0f;
     }
 }
 

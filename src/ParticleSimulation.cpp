@@ -140,7 +140,7 @@ void ParticleSimulation::updateAndDraw()
     // If LMB is pressed, create line for aim and show angle
     if (isAiming)
     {
-	drawAimLine();
+        drawAimLine();
     }
     
     // Update the particle count & mass text
@@ -156,11 +156,12 @@ void ParticleSimulation::updateAndDraw()
     for (std::size_t i = 0; i < particles.size(); i++)
     {
         // Check if the particle's position is outside the window bounds
-        if (particles[i].position.x < 0 || particles[i].position.x > WINDOW_WIDTH || particles[i].position.y > WINDOW_HEIGHT || particles[i].position.y < 0)
+        if (particles[i].position.x < 0 || particles[i].position.x > WINDOW_WIDTH ||
+            particles[i].position.y > WINDOW_HEIGHT || particles[i].position.y < 0)
         {
             // If the particle is outside the window bounds, swap and pop from vector 
-	    std::swap(particles[i], particles.back());
-	    particles.pop_back();
+	        std::swap(particles[i], particles.back());
+	        particles.pop_back();
         } else {
             // Insert valid particle into QuadTree
             quadTree.insert(&particles[i]);
@@ -173,7 +174,7 @@ void ParticleSimulation::updateAndDraw()
         if (!isPaused)
         {
 	    // Apply gravity to the velocity
-            particles[i].velocity += gravity; 
+            particles[i].velocity += gravity;
 
             // Update position of particle based on Quadtree
             quadTree.update(timeStep, &particles[i]);
@@ -194,7 +195,7 @@ void ParticleSimulation::updateAndDraw()
         // Create visual for particle's velocity vector if toggled
         if (showVelocity)
         {
-	    drawParticleVelocity(particles[i]);
+	        drawParticleVelocity(particles[i]);
         }
     }
 
