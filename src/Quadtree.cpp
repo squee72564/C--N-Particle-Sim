@@ -77,9 +77,15 @@ void QuadTree::split()
 
     // Use current origin position of bounding rectangle to calculate origin position for NW,NE,SW,SE subregions
     m_subnode[0] = new QuadTree(m_level + 1, sf::Vector2f(m_rect.getPosition().x, m_rect.getPosition().y), width/2, height/2);
-    m_subnode[1] = new QuadTree(m_level + 1, sf::Vector2f(m_rect.getPosition().x + width/2, m_rect.getPosition().y), width/2, height/2);
-    m_subnode[2] = new QuadTree(m_level + 1, sf::Vector2f(m_rect.getPosition().x, m_rect.getPosition().y + height/2), width/2, height/2);
-    m_subnode[3] = new QuadTree(m_level + 1, sf::Vector2f(m_rect.getPosition().x + width/2, m_rect.getPosition().y + height/2), width/2, height/2);
+    
+    m_subnode[1] = new QuadTree(m_level + 1, sf::Vector2f(m_rect.getPosition().x + width/2,
+			    m_rect.getPosition().y), width/2, height/2);
+    
+    m_subnode[2] = new QuadTree(m_level + 1, sf::Vector2f(m_rect.getPosition().x,
+			    m_rect.getPosition().y + height/2), width/2, height/2);
+    
+    m_subnode[3] = new QuadTree(m_level + 1, sf::Vector2f(m_rect.getPosition().x + width/2,
+			    m_rect.getPosition().y + height/2), width/2, height/2);
 
     for (Particle* particle : m_index)
     {
@@ -93,10 +99,10 @@ void QuadTree::split()
         }
     }
 
-
     m_index.clear();
     totalMass = 0;
-    com = sf::Vector2f(0,0);
+    com.x = 0;
+    com.y = 0;
 }
 
 void QuadTree::display(sf::RenderWindow* gameWindow)
@@ -237,7 +243,8 @@ void QuadTree::deleteTree()
     // Root node is not deleted; just clear Particle vector
     if ( m_level == 0 )
     {
-        com = sf::Vector2f(0,0);
+        com.x = 0;
+	com.y = 0;
         totalMass = 0;
         m_index.clear();
         isLeaf = true;

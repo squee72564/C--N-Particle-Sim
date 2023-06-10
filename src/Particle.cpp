@@ -12,7 +12,7 @@ Particle::Particle()
     acceleration = sf::Vector2f(0,0);
 }
 
-Particle::Particle(sf::Vector2f pos, sf::Vector2f vel, float m, std::mt19937& gen, std::uniform_int_distribution<>& dis)
+Particle::Particle(const sf::Vector2f pos, const sf::Vector2f vel, float m, std::mt19937& gen, std::uniform_int_distribution<>& dis)
     : position(pos),
       velocity(vel),
       mass(m)
