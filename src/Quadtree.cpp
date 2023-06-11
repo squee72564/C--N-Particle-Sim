@@ -5,7 +5,8 @@ QuadTree::QuadTree()
     width(1280),
     height(800),
     isLeaf(true),
-    m_subnode{nullptr, nullptr, nullptr, nullptr}
+    m_subnode{nullptr, nullptr, nullptr, nullptr},
+    particlesMutex()
 {
     m_index.reserve(NODE_CAPACITY + 1);
     m_rect.setPosition(1280-width, 800-height);
@@ -24,7 +25,8 @@ QuadTree::QuadTree(const int m_level, sf::Vector2f position, float w, float h)
     width(w),
     height(h),
     isLeaf(true),
-    m_subnode{nullptr, nullptr, nullptr, nullptr}
+    m_subnode{nullptr, nullptr, nullptr, nullptr},
+    particlesMutex()
 {
     m_index.reserve(NODE_CAPACITY + 1);
     m_rect.setPosition(position);
@@ -42,7 +44,8 @@ QuadTree::QuadTree(const int m_level, float w, float h)
     width(w),
     height(h),
     isLeaf(true),
-    m_subnode{nullptr, nullptr, nullptr, nullptr}
+    m_subnode{nullptr, nullptr, nullptr, nullptr},
+    particlesMutex()
 {
     m_index.reserve(NODE_CAPACITY + 1);
     m_rect.setPosition(0,0);
@@ -60,7 +63,8 @@ QuadTree::QuadTree(const QuadTree& qt)
     height(qt.height),
     isLeaf(qt.isLeaf),
     m_subnode{qt.m_subnode},
-    m_index{qt.m_index}
+    m_index{qt.m_index},
+    particlesMutex()
 {
     m_rect.setPosition(qt.m_rect.getPosition());
     m_rect.setSize(sf::Vector2f(width,height));
