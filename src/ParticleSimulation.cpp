@@ -1,10 +1,12 @@
 #include "ParticleSimulation.hpp"
 
-ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window)
+ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window, int threads)
 {
     gameWindow = &window;
     windowWidth = window.getSize().x;
     windowHeight = window.getSize().y;
+
+    numThreads = threads;
 
     timeStep = dt;
     gravity = g;
@@ -143,7 +145,7 @@ void ParticleSimulation::pollUserEvent()
 void ParticleSimulation::updateAndDraw()
 {
     // Clear the window graphics
-    gameWindow->clear(); 
+    gameWindow->clear();
     // Clear Quadtree
     quadTree.deleteTree();
 
@@ -171,34 +173,68 @@ void ParticleSimulation::updateAndDraw()
             // If the particle is outside the window bounds, swap and pop from vector 
 	        std::swap(particles[i], particles.back());
 	        particles.pop_back();
+            i--;
         } else {
             // Insert valid particle into QuadTree
             quadTree.insert(&particles[i]);
         }
     }
-    
-    // Apply forces and draw each particle in QuadTree
-    for (std::size_t i = 0; i < particles.size(); i++)
+
+    // Split the particles into equal-sized chunks for each thread
+    const std::size_t chunkSize = particles.size() / numThreads;
+    const std::size_t remainder = particles.size() % numThreads;
+
+    // Create a vector to store the threads
+    std::vector<std::thread> threads;
+
+    // Create and start the threads
+    for (int i = 0; i < numThreads; i++)
     {
-        if (!isPaused)
+        // Define the start and end indices for the current chunk
+        std::size_t startIdx = i * chunkSize;
+        std::size_t endIdx = startIdx + chunkSize;
+
+        // If it's the last thread, adjust the end index to include the remainder particles
+        if (i == numThreads - 1)
         {
-	    // Apply gravity to the velocity
-            particles[i].velocity += gravity;
-
-            // Update position of particle based on Quadtree
-            quadTree.update(timeStep, &particles[i]);
-
-            // If RMB Pressed apply attractive force
-            if (isRightButtonPressed)
-            {
-                attractParticleToMousePos(particles[i]);
-            }
+            endIdx += remainder;
         }
 
-	// Set particle circle shape to new position
+        // Create a lambda function that will be executed by each thread
+        auto threadFunc = [this, startIdx, endIdx]() {
+            for (std::size_t j = startIdx; j < endIdx; j++) {
+                if (!isPaused) {
+                    // Apply gravity to the velocity
+                    this->particles[j].velocity += this->gravity;
+
+                    // Update position of particle based on Quadtree
+                    this->quadTree.update(this->timeStep, &(this->particles[j]));
+
+                    // If RMB Pressed, apply attractive force
+                    if (this->isRightButtonPressed) {
+                        attractParticleToMousePos(this->particles[j]);
+                    }
+                }
+            }
+        };
+
+        // Create a thread and pass the lambda function
+        threads.emplace_back(threadFunc);
+    }
+
+    // Wait for all threads to finish
+    for (auto& thread : threads)
+    {
+        thread.join();
+    }
+
+    for (std::size_t i = 0; i < particles.size(); i++)
+    {
+
+	    // Set particle circle shape to new position
         particles[i].shape.setPosition(particles[i].position);
 	
-	// Draw the particle's shape
+	    // Draw the particle's shape
         gameWindow->draw(particles[i].shape); 
 
         // Create visual for particle's velocity vector if toggled
