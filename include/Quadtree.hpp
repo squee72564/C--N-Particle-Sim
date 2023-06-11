@@ -3,6 +3,7 @@
 #include <array>
 #include <vector>
 #include <algorithm>
+#include <mutex>
 #include "Particle.hpp"
 
 static const int NODE_CAPACITY = 3; //This is the capacity at which the quadtree splits; 1 means it divides until max depth
@@ -25,6 +26,8 @@ private:
   sf::Vector2f com;
   int totalMass;
 
+  std::mutex particleMutex;
+
 public:
 
   QuadTree();
@@ -32,7 +35,9 @@ public:
   QuadTree(const int m_level, sf::Vector2f ori, float h, float w);
   QuadTree(const int m_level, float h, float w);
   QuadTree(const QuadTree& qt);
-  //QuadTree(QuadTree&& qt);
+  QuadTree(QuadTree&& qt);
+  QuadTree& operator=(const QuadTree& other);  
+  QuadTree& operator=(QuadTree&& other);  
   
   void split();
   void display(sf::RenderWindow* gameWindow);

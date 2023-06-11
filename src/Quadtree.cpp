@@ -5,7 +5,8 @@ QuadTree::QuadTree()
     width(1280),
     height(800),
     isLeaf(true),
-    m_subnode{nullptr, nullptr, nullptr, nullptr}
+    m_subnode{nullptr, nullptr, nullptr, nullptr},
+    particleMutex()
 {
     m_index.reserve(NODE_CAPACITY + 1);
     m_rect.setPosition(1280-width, 800-height);
@@ -24,7 +25,8 @@ QuadTree::QuadTree(const int m_level, sf::Vector2f position, float w, float h)
     width(w),
     height(h),
     isLeaf(true),
-    m_subnode{nullptr, nullptr, nullptr, nullptr}
+    m_subnode{nullptr, nullptr, nullptr, nullptr},
+    particleMutex()
 {
     m_index.reserve(NODE_CAPACITY + 1);
     m_rect.setPosition(position);
@@ -42,7 +44,8 @@ QuadTree::QuadTree(const int m_level, float w, float h)
     width(w),
     height(h),
     isLeaf(true),
-    m_subnode{nullptr, nullptr, nullptr, nullptr}
+    m_subnode{nullptr, nullptr, nullptr, nullptr},
+    particleMutex()
 {
     m_index.reserve(NODE_CAPACITY + 1);
     m_rect.setPosition(0,0);
@@ -60,7 +63,8 @@ QuadTree::QuadTree(const QuadTree& qt)
     height(qt.height),
     isLeaf(qt.isLeaf),
     m_subnode{qt.m_subnode},
-    m_index{qt.m_index}
+    m_index{qt.m_index},
+    particleMutex()
 {
     m_rect.setPosition(qt.m_rect.getPosition());
     m_rect.setSize(sf::Vector2f(width,height));
@@ -70,6 +74,57 @@ QuadTree::QuadTree(const QuadTree& qt)
     totalMass = qt.totalMass;
     com = qt.com;
 }
+
+QuadTree::QuadTree(QuadTree&& qt)
+    : m_level(qt.m_level),
+      width(qt.width),
+      height(qt.height),
+      isLeaf(qt.isLeaf),
+      m_subnode(std::move(qt.m_subnode)),
+      m_index(std::move(qt.m_index)),
+      m_rect(std::move(qt.m_rect)),
+      com(qt.com),
+      totalMass(qt.totalMass),
+      particleMutex()
+{
+    qt.com = sf::Vector2f(0, 0);
+    qt.totalMass = 0;
+}
+
+QuadTree& QuadTree::operator=(const QuadTree& other)
+{
+    if (this != &other) {
+        m_level = other.m_level;
+        width = other.width;
+        height = other.height;
+        isLeaf = other.isLeaf;
+        m_subnode = other.m_subnode;
+        m_index = other.m_index;
+        m_rect = other.m_rect;
+        com = other.com;
+        totalMass = other.totalMass;
+    }
+    return *this;
+}
+
+QuadTree& QuadTree::operator=(QuadTree&& other)
+{
+    if (this != &other) {
+        m_level = other.m_level;
+        width = other.width;
+        height = other.height;
+        isLeaf = other.isLeaf;
+        m_subnode = std::move(other.m_subnode);
+        m_index = std::move(other.m_index);
+        m_rect = std::move(other.m_rect);
+        com = other.com;
+        totalMass = other.totalMass;
+        other.com = sf::Vector2f(0, 0);
+        other.totalMass = 0;
+    }
+    return *this;
+}
+
 
 void QuadTree::split()
 {
@@ -179,6 +234,8 @@ void QuadTree::update(float dt, Particle* particle)
             if (distanceSquared != 0 && distanceSquared <= (particle->radius + other->radius) * (particle->radius + other->radius))
             {
                 sf::Vector2f rHat = (other->position - particle->position) * inv_Sqrt(distanceSquared);
+                
+                std::lock_guard<std::mutex> lock(particleMutex);
 
                 float a1 = dot(particle->velocity, rHat);
                 float a2 = dot(other->velocity, rHat);
@@ -214,7 +271,7 @@ void QuadTree::deleteTree()
     if (m_level == 0 && isLeaf)
     {
         com.x = 0.0f;
-	com.y = 0.0f;
+	    com.y = 0.0f;
         totalMass = 0;
         m_index.clear();
         return;
@@ -244,7 +301,7 @@ void QuadTree::deleteTree()
     if ( m_level == 0 )
     {
         com.x = 0;
-	com.y = 0;
+	    com.y = 0;
         totalMass = 0;
         m_index.clear();
         isLeaf = true;
