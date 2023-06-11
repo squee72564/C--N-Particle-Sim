@@ -5,10 +5,14 @@
 #include "Particle.hpp"
 #include "QuadTree.hpp"
 #include <vector>
+#include <thread>
 
 class ParticleSimulation : Simulation
 {
 private:
+    // Simulation threads
+    int numThreads;
+
     // Game Window
     int windowWidth;
     int windowHeight;
@@ -48,7 +52,7 @@ private:
     sf::Event event;
 
 public:
-    ParticleSimulation(float dt, const sf::Vector2f &g, sf::RenderWindow &window);
+    ParticleSimulation(float dt, const sf::Vector2f &g, sf::RenderWindow &window, int numThreads);
     virtual ~ParticleSimulation();
     void run();
     void pollUserEvent();
