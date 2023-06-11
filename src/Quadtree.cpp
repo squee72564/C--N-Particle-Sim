@@ -173,7 +173,7 @@ void QuadTree::update(float dt, Particle* particle)
             
             if (distanceSquared != 0 && distanceSquared > (particle->radius + other->radius) * (particle->radius + other->radius))
             {
-                particle->acceleration -= (other->mass / distanceSquared) * BIG_G * (other->position - particle->position);
+                particle->acceleration += (other->mass / distanceSquared) * BIG_G * (other->position - particle->position);
             }
 
             if (distanceSquared != 0 && distanceSquared <= (particle->radius + other->radius) * (particle->radius + other->radius))
