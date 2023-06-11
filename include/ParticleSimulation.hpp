@@ -6,6 +6,8 @@
 #include "QuadTree.hpp"
 #include <vector>
 #include <thread>
+#include <chrono>
+#include <fstream>
 
 class ParticleSimulation : Simulation
 {

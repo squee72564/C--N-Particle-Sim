@@ -49,12 +49,31 @@ ParticleSimulation::~ParticleSimulation()
 
 void ParticleSimulation::run()
 {
+    std::string logName = "./log/performance-" + std::to_string(numThreads) + ".txt";
+    std::ofstream outputFile(logName);
+    unsigned long long iterationCount = 0;
+    double totalTime = 0.0;
+
     // Run the program as long as the window is open
     while (gameWindow->isOpen())
     {
+        auto start = std::chrono::steady_clock::now();
+        
         pollUserEvent();
         updateAndDraw();
+        
+        auto end = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+        iterationCount++;
+        totalTime += duration.count();
     }
+
+    double averageTime = totalTime / iterationCount;
+    outputFile << "Average time per iteration: " << averageTime << " ms" << std::endl;
+
+    outputFile.close();
+
 }
 
 void ParticleSimulation::pollUserEvent()
