@@ -72,6 +72,7 @@ public:
     void drawParticleVelocity(Particle& particle);
     void attractParticleToMousePos(Particle& particle);
     void updateForces(Particle* particle);
+    void addParticleDiaganol(int tiles, int numParticles);
 };
 
 sf::Vector2f getMousePosition(const sf::RenderWindow &window);

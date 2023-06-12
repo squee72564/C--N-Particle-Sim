@@ -62,22 +62,7 @@ void ParticleSimulation::run()
     iterationCount = 0;
     totalTime = 0.0;
 
-    int col = 20;
-    int row = 20;
-    int smallWidth = windowWidth / 4;
-    int smallHeight = windowHeight / 4;
-    int dx = 0;
-    int dy = 0;
-    for (int i = 0; i < 4; i++) {
-        for (int i = 0; i < col; i++) {
-            for (int j = 0; j < row; j++ ) {
-                particles.emplace_back(Particle(sf::Vector2f((i*smallWidth/col)+dx,(j*smallHeight/row)+dy), sf::Vector2f(0,0), 1, gen , dis));
-            }
-        }
-
-        dx += smallWidth;
-        dy += smallHeight;
-    }
+    addParticleDiaganol(8, 1600);
 
     // Run the program as long as the window is open
     while (gameWindow->isOpen())
@@ -467,6 +452,23 @@ void ParticleSimulation::updateForces(Particle* particle)
             float y = leafNodes[i]->getCOM().y / leafNodes[i]->getTotalMass();
             float distanceSquared = dot(particle->position - sf::Vector2f(x,y), particle->position - sf::Vector2f(x,y));
             particle->acceleration += (leafNodes[i]->getTotalMass() / distanceSquared) * BIG_G * (sf::Vector2f(x,y) - particle->position);
+        }
+    }
+}
+
+void ParticleSimulation::addParticleDiaganol(int tiles, int particleNum)
+{
+    int col = sqrt(particleNum/tiles);
+    int row = col;
+
+    int smallWidth = windowWidth / tiles;
+    int smallHeight = windowHeight / tiles;
+
+    for (int i = 0; i < tiles; i++) {
+        for (int j = 0; j < col; j++) {
+            for (int k = 0; k < row; k++ ) {
+                particles.emplace_back(Particle(sf::Vector2f((j*smallWidth/col)+smallWidth*i,(k*smallHeight/row)+smallHeight*i), sf::Vector2f(0,0), 1, gen , dis));
+            }
         }
     }
 }
