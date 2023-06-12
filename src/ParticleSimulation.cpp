@@ -37,6 +37,14 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
 
     isRightButtonPressed = false;
     isAiming = false;
+
+    iterationCount = 0;
+    totalTime = 0;
+    insertionTime = 0;
+    leafnodeTime = 0;
+    updateTime = 0;
+    moveTime = 0;
+    drawTime = 0;
 }
 
 ParticleSimulation::~ParticleSimulation()
@@ -51,8 +59,25 @@ void ParticleSimulation::run()
 {
     std::string logName = "./log/performance-" + std::to_string(numThreads) + ".txt";
     std::ofstream outputFile(logName);
-    unsigned long long iterationCount = 0;
-    double totalTime = 0.0;
+    iterationCount = 0;
+    totalTime = 0.0;
+
+    int col = 20;
+    int row = 20;
+    int smallWidth = windowWidth / 4;
+    int smallHeight = windowHeight / 4;
+    int dx = 0;
+    int dy = 0;
+    for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < col; i++) {
+            for (int j = 0; j < row; j++ ) {
+                particles.emplace_back(Particle(sf::Vector2f((i*smallWidth/col)+dx,(j*smallHeight/row)+dy), sf::Vector2f(0,0), 1, gen , dis));
+            }
+        }
+
+        dx += smallWidth;
+        dy += smallHeight;
+    }
 
     // Run the program as long as the window is open
     while (gameWindow->isOpen())
@@ -68,9 +93,20 @@ void ParticleSimulation::run()
         iterationCount++;
         totalTime += duration.count();
     }
+    
+    double fracInsertTime = static_cast<double>(insertionTime) / totalTime;;
+    double fracLeafNodeTime = static_cast<double>(leafnodeTime) / totalTime;
+    double fracUpdateTime = static_cast<double>(updateTime) / totalTime;
+    double fracMoveTime = static_cast<double>(moveTime) / totalTime;
+    double fracDrawTime = static_cast<double>(drawTime) / totalTime;
+    double averageTime = static_cast<double>(totalTime) / iterationCount;
 
-    double averageTime = totalTime / iterationCount;
-    outputFile << "Average time per iteration: " << averageTime << " ms" << std::endl;
+    outputFile << "Average time per iteration: " << averageTime << " ms\n";
+    outputFile << "Proportion of time on inserting particles to quadtree: " << fracInsertTime << "\n";
+    outputFile << "Proportion of time on getting leaf nodes: " << fracLeafNodeTime << "\n";
+    outputFile << "Proportion of time on updating forces: " << fracUpdateTime << "\n";
+    outputFile << "Proportion of time on moving particles: " << fracMoveTime << "\n";
+    outputFile << "Proportion of time on drawing objects to screen: " << fracDrawTime << "\n";
 
     outputFile.close();
 
@@ -126,7 +162,7 @@ void ParticleSimulation::pollUserEvent()
                 {
                     isAiming = false;
                     final_mousePosF = getMousePosition(*gameWindow);
-                    particles.emplace_back(Particle(initial_mousePosF, initial_mousePosF-final_mousePosF, particleMass, gen , dis));
+                    particles.emplace_back(Particle(initial_mousePosF, (initial_mousePosF-final_mousePosF), particleMass, gen , dis));
                 }
 
                 break;
@@ -168,6 +204,8 @@ void ParticleSimulation::updateAndDraw()
     // Clear Quadtree
     quadTree.deleteTree();
 
+    leafNodes.clear();
+
     // If LMB is pressed, create line for aim and show angle
     if (isAiming)
     {
@@ -182,87 +220,151 @@ void ParticleSimulation::updateAndDraw()
     gameWindow->draw(particleCountText);
     gameWindow->draw(particleMassText);
 
+    auto insertionStart = std::chrono::steady_clock::now();
     // Insert particles into QuadTree or erase if off screen
-    for (std::size_t i = 0; i < particles.size(); i++)
+    for (std::size_t i = 0; i < particles.size(); ++i)
     {
         // Check if the particle's position is outside the window bounds
         if (particles[i].position.x < 0 || particles[i].position.x > windowWidth ||
-			particles[i].position.y > windowHeight || particles[i].position.y < 0)
+            particles[i].position.y > windowHeight || particles[i].position.y < 0)
         {
             // If the particle is outside the window bounds, swap and pop from vector 
-	        std::swap(particles[i], particles.back());
-	        particles.pop_back();
-            i--;
+            std::swap(particles[i], particles.back());
+            particles.pop_back();
+            --i;
         } else {
             // Insert valid particle into QuadTree
             quadTree.insert(&particles[i]);
         }
     }
+    auto insertionEnd = std::chrono::steady_clock::now();
+    insertionTime += std::chrono::duration_cast<std::chrono::milliseconds>(insertionEnd - insertionStart).count();
+    
+    auto leafNodeStart = std::chrono::steady_clock::now();
+    quadTree.getLeafNodes(leafNodes);
+    auto leafNodeEnd = std::chrono::steady_clock::now();
+    leafnodeTime += std::chrono::duration_cast<std::chrono::milliseconds>(leafNodeEnd - leafNodeStart).count();
 
-    // Split the particles into equal-sized chunks for each thread
-    const std::size_t chunkSize = particles.size() / numThreads;
-    const std::size_t remainder = particles.size() % numThreads;
-
-    // Create a vector to store the threads
-    std::vector<std::thread> threads;
-
-    // Create and start the threads
-    for (int i = 0; i < numThreads; i++)
+    if (!particles.empty())
     {
-        // Define the start and end indices for the current chunk
-        std::size_t startIdx = i * chunkSize;
-        std::size_t endIdx = startIdx + chunkSize;
+        // Split the particles into equal-sized chunks for each thread
+        const std::size_t chunkSize = particles.size() / numThreads;
+        const std::size_t remainder = particles.size() % numThreads;
 
-        // If it's the last thread, adjust the end index to include the remainder particles
-        if (i == numThreads - 1)
+        // Create a vector to store the threads
+        std::vector<std::thread> threads;
+
+        auto updateTimeStart = std::chrono::steady_clock::now();
+        // Create and start the threads
+        for (int i = 0; i < numThreads; i++)
         {
-            endIdx += remainder;
-        }
+            // Define the start and end indices for the current chunk
+            std::size_t startIdx = i * chunkSize;
+            std::size_t endIdx = startIdx + chunkSize;
 
-        // Create a lambda function that will be executed by each thread
-        auto threadFunc = [this, startIdx, endIdx]() {
-            for (std::size_t j = startIdx; j < endIdx; j++) {
-                if (!isPaused) {
-                    // Apply gravity to the velocity
-                    this->particles[j].velocity += this->gravity;
+            // If it's the last thread, adjust the end index to include the remainder particles
+            if (i == numThreads - 1)
+            {
+                endIdx += remainder;
+            }
 
-                    // Update position of particle based on Quadtree
-                    this->quadTree.update(this->timeStep, &(this->particles[j]));
+            // Create a lambda function that will be executed by each thread
+            auto threadFunc = [this, startIdx, endIdx]() {
+                for (std::size_t j = startIdx; j < endIdx; j++)
+                {
+                    if (!isPaused)
+                    {
+                        // Apply gravity to the velocity
+                        this->particles[j].velocity += this->gravity;
 
-                    // If RMB Pressed, apply attractive force
-                    if (this->isRightButtonPressed) {
-                        attractParticleToMousePos(this->particles[j]);
+                        // Update position of particle based on Quadtree
+                        //this->quadTree.updateForces(this->timeStep, &(this->particles[j]));
+                        updateForces(&(this->particles[j]));
+
+                        // If RMB Pressed, apply attractive force
+                        if (this->isRightButtonPressed) {
+                            attractParticleToMousePos(this->particles[j]);
+                        }
                     }
                 }
-            }
-        };
+            };
 
-        // Create a thread and pass the lambda function
-        threads.emplace_back(threadFunc);
-    }
-
-    // Wait for all threads to finish
-    for (auto& thread : threads)
-    {
-        thread.join();
-    }
-
-    for (std::size_t i = 0; i < particles.size(); i++)
-    {
-
-	    // Set particle circle shape to new position
-        particles[i].shape.setPosition(particles[i].position);
-	
-	    // Draw the particle's shape
-        gameWindow->draw(particles[i].shape); 
-
-        // Create visual for particle's velocity vector if toggled
-        if (showVelocity)
-        {
-	        drawParticleVelocity(particles[i]);
+            // Create a thread and pass the lambda function
+            threads.emplace_back(threadFunc);
         }
+
+        // Wait for all threads to finish
+        for (auto& thread : threads)
+        {
+            thread.join();
+        }
+        auto updateTimeEnd = std::chrono::steady_clock::now();
+        updateTime += std::chrono::duration_cast<std::chrono::milliseconds>(updateTimeEnd - updateTimeStart).count();
+
+        threads.clear();
+
+        auto moveTimeStart = std::chrono::steady_clock::now();
+        // Create and start the threads
+        for (int i = 0; i < numThreads; i++)
+        {
+            // Define the start and end indices for the current chunk
+            std::size_t startIdx = i * chunkSize;
+            std::size_t endIdx = startIdx + chunkSize;
+
+            // If it's the last thread, adjust the end index to include the remainder particles
+            if (i == numThreads - 1)
+            {
+                endIdx += remainder;
+            }
+
+            // Create a lambda function that will be executed by each thread
+            auto threadFunc = [this, startIdx, endIdx]() {
+                for (std::size_t j = startIdx; j < endIdx; j++)
+                {
+                    if (!isPaused)
+                    {
+                        // Update particle position
+                        this->particles[j].velocity += this->particles[j].acceleration * this->timeStep;
+                        this->particles[j].position += this->particles[j].velocity * this->timeStep;
+                        this->particles[j].acceleration.x = 0.0f;
+                        this->particles[j].acceleration.y = 0.0f;
+                        
+                        // Set particle circle shape to new position
+                        this->particles[j].shape.setPosition(this->particles[j].position);
+                    }
+                }
+            };
+
+            // Create a thread and pass the lambda function
+            threads.emplace_back(threadFunc);
+        }
+
+        // Wait for all threads to finish
+        for (auto& thread : threads)
+        {
+            thread.join();
+        }
+        auto moveTimeEnd = std::chrono::steady_clock::now();
+        moveTime += std::chrono::duration_cast<std::chrono::milliseconds>(moveTimeEnd - moveTimeStart).count();
+
+        auto drawTimeStart = std::chrono::steady_clock::now();
+        for (std::size_t i = 0; i < particles.size(); i++)
+        {
+            // Draw the particle's shape
+            gameWindow->draw(particles[i].shape);
+
+            // Create visual for particle's velocity vector if toggled
+            if (showVelocity)
+            {
+                drawParticleVelocity(particles[i]);
+            }
+        }
+        auto drawTimeEnd = std::chrono::steady_clock::now();
+        drawTime += std::chrono::duration_cast<std::chrono::milliseconds>(drawTimeEnd - drawTimeStart).count();
+
     }
 
+    auto drawTimeStart = std::chrono::steady_clock::now();
     // Recursively draw QuadTree rectangles
     if (showQuadTree)
     {
@@ -270,7 +372,10 @@ void ParticleSimulation::updateAndDraw()
     }
     
     // Display the window
-    gameWindow->display(); 
+    gameWindow->display();
+    auto drawTimeEnd = std::chrono::steady_clock::now();
+    drawTime += std::chrono::duration_cast<std::chrono::milliseconds>(drawTimeEnd - drawTimeStart).count();
+
 }
 
 void ParticleSimulation::drawAimLine() 
@@ -322,8 +427,64 @@ void ParticleSimulation::attractParticleToMousePos(Particle& particle)
     particle.velocity -= tempForce;
 }
 
+void ParticleSimulation::updateForces(Particle* particle)
+{
+    for (std::size_t i = 0; i < leafNodes.size(); i++)
+    {
+        if (!leafNodes[i]->empty() && leafNodes[i]->contains(particle->position))
+        {
+            for (Particle* other : leafNodes[i]->getParticleVec())
+            {
+                if (other == particle)
+                {
+                    continue;
+                }
+            
+                float distanceSquared = dot(particle->position - other->position, particle->position - other->position);
+                
+                if (distanceSquared != 0 && distanceSquared > (particle->radius + other->radius) * (particle->radius + other->radius))
+                {
+                    particle->acceleration += (other->mass / distanceSquared) * BIG_G * (other->position - particle->position);
+                }
+
+                if (distanceSquared != 0 && distanceSquared <= (particle->radius + other->radius) * (particle->radius + other->radius))
+                {
+                    std::lock_guard<std::mutex> lock(leafNodes[i]->getParticleMutex());
+
+                    sf::Vector2f rHat = (other->position - particle->position) * inv_Sqrt(distanceSquared);
+
+                    float a1 = dot(particle->velocity, rHat);
+                    float a2 = dot(other->velocity, rHat);
+                
+                    float p = 2 * particle->mass * other->mass * (a1-a2)/(particle->mass + other->mass);
+
+                    particle->velocity -= p/particle->mass * (rHat);
+                    other->velocity += p/other->mass * (rHat);
+                }
+            }
+        } else if (!leafNodes[i]->empty()) {
+            float x = leafNodes[i]->getCOM().x / leafNodes[i]->getTotalMass();
+            float y = leafNodes[i]->getCOM().y / leafNodes[i]->getTotalMass();
+            float distanceSquared = dot(particle->position - sf::Vector2f(x,y), particle->position - sf::Vector2f(x,y));
+            particle->acceleration += (leafNodes[i]->getTotalMass() / distanceSquared) * BIG_G * (sf::Vector2f(x,y) - particle->position);
+        }
+    }
+}
+
 sf::Vector2f getMousePosition(const sf::RenderWindow &window)
 {
     // Get mouse position and convert to global coords 
     return window.mapPixelToCoords(sf::Mouse::getPosition(window));
+}
+
+template <typename T>
+inline float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2)
+{
+    return (vec1.x * vec2.x) + (vec1.y * vec2.y);
+}
+
+inline float inv_Sqrt(float number)
+{
+    float squareRoot = sqrt(number);
+    return 1.0f / squareRoot;
 }

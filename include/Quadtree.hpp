@@ -19,6 +19,7 @@ private:
   bool isLeaf;
 
   std::array<QuadTree*, 4> m_subnode;
+  
   std::vector<Particle*> m_index;
 
   sf::RectangleShape m_rect;
@@ -29,7 +30,6 @@ private:
   std::mutex particleMutex;
 
 public:
-
   QuadTree();
   //~QuadTree();
   QuadTree(const int m_level, sf::Vector2f ori, float h, float w);
@@ -42,16 +42,20 @@ public:
   void split();
   void display(sf::RenderWindow* gameWindow);
   void insert(Particle* particle);
-  void update(float dt, Particle* particle);
+  void updateForces(float dt, Particle* particle);
   void deleteTree();
+  void getLeafNodes(std::vector<QuadTree*>& vec);
+  bool contains(sf::Vector2f& pos);
+  bool empty();
+  std::mutex& getParticleMutex();
+  std::vector<Particle*>& getParticleVec();
+  sf::Vector2f& getCOM();
+  int& getTotalMass();
 };
 
 template <typename T>
 inline float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2);
 
 inline float inv_Sqrt(float number);
-
-// inline bool operator==(const Particle& lhs, const Particle& rhs);
-// inline bool operator!=(const X& lhs, const X& rhs){return !operator==(lhs,rhs);}
 
 #endif

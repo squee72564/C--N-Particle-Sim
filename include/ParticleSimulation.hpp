@@ -25,6 +25,7 @@ private:
     QuadTree quadTree;
 
     std::vector<Particle> particles;
+    std::vector<QuadTree*> leafNodes;
 
     sf::Vector2f gravity;
 
@@ -53,6 +54,14 @@ private:
 
     sf::Event event;
 
+    unsigned long long iterationCount;
+    unsigned long long totalTime;
+    unsigned long long insertionTime;
+    unsigned long long leafnodeTime;
+    unsigned long long updateTime;
+    unsigned long long moveTime;
+    unsigned long long drawTime;
+
 public:
     ParticleSimulation(float dt, const sf::Vector2f &g, sf::RenderWindow &window, int numThreads);
     virtual ~ParticleSimulation();
@@ -62,6 +71,7 @@ public:
     void drawAimLine();
     void drawParticleVelocity(Particle& particle);
     void attractParticleToMousePos(Particle& particle);
+    void updateForces(Particle* particle);
 };
 
 sf::Vector2f getMousePosition(const sf::RenderWindow &window);

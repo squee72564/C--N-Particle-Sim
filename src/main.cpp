@@ -20,7 +20,7 @@ int main()
     sf::Vector2f grav = sf::Vector2f(0,0);
 
     //Start Particle Simulation
-    ParticleSimulation particleSimulation(TIME_STEP, grav, window, 6);
+    ParticleSimulation particleSimulation(TIME_STEP, grav, window, 12);
     particleSimulation.run();
 
     return 0;

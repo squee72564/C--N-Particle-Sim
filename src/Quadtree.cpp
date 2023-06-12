@@ -206,14 +206,14 @@ void QuadTree::insert(Particle* particle)
     }
 }
 
-void QuadTree::update(float dt, Particle* particle)
+void QuadTree::updateForces(float dt, Particle* particle)
 {
     if (!isLeaf)
     {
-        m_subnode[0]->update(dt, particle);
-        m_subnode[1]->update(dt, particle);
-        m_subnode[2]->update(dt, particle);
-        m_subnode[3]->update(dt, particle);
+        m_subnode[0]->updateForces(dt, particle);
+        m_subnode[1]->updateForces(dt, particle);
+        m_subnode[2]->updateForces(dt, particle);
+        m_subnode[3]->updateForces(dt, particle);
     }
     else if (m_rect.getGlobalBounds().contains(particle->position))
     {
@@ -233,9 +233,9 @@ void QuadTree::update(float dt, Particle* particle)
 
             if (distanceSquared != 0 && distanceSquared <= (particle->radius + other->radius) * (particle->radius + other->radius))
             {
-                sf::Vector2f rHat = (other->position - particle->position) * inv_Sqrt(distanceSquared);
-                
                 std::lock_guard<std::mutex> lock(particleMutex);
+
+                sf::Vector2f rHat = (other->position - particle->position) * inv_Sqrt(distanceSquared);
 
                 float a1 = dot(particle->velocity, rHat);
                 float a2 = dot(other->velocity, rHat);
@@ -255,14 +255,15 @@ void QuadTree::update(float dt, Particle* particle)
         particle->acceleration += (totalMass / distanceSquared) * BIG_G * (sf::Vector2f(x,y) - particle->position);
     }
 
-    // This calculates the new position and velocity after summing all the forces on the particle
-    if (m_level == 0)
-    {
-        particle->velocity += particle->acceleration * dt;
-        particle->position += particle->velocity * dt;
-	    particle->acceleration.x = 0.0f;
-	    particle->acceleration.y = 0.0f;
-    }
+    // // This calculates the new position and velocity after summing all the forces on the particle
+    // if (m_level == 0)
+    // {
+    //     std::lock_guard<std::mutex> lock(particleMutex);
+    //     particle->velocity += particle->acceleration * dt;
+    //     particle->position += particle->velocity * dt;
+	//     particle->acceleration.x = 0.0f;
+	//     particle->acceleration.y = 0.0f;
+    // }
 }
 
 void QuadTree::deleteTree()
@@ -306,6 +307,64 @@ void QuadTree::deleteTree()
         m_index.clear();
         isLeaf = true;
     }
+}
+
+void QuadTree::getLeafNodes(std::vector<QuadTree*>& vec)
+{
+    if (isLeaf)
+    {
+        vec.push_back(this);
+        return;
+    }
+
+    m_subnode[0]->getLeafNodes(vec);
+    m_subnode[1]->getLeafNodes(vec);
+    m_subnode[2]->getLeafNodes(vec);
+    m_subnode[3]->getLeafNodes(vec);
+}
+
+bool QuadTree::contains(sf::Vector2f& pos)
+{
+    if (m_rect.getGlobalBounds().contains(pos))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool QuadTree::empty()
+{
+    if (m_index.empty())
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+std::mutex& QuadTree::getParticleMutex()
+{
+    return particleMutex;
+}
+
+std::vector<Particle*>& QuadTree::getParticleVec()
+{
+    return m_index;
+}
+
+sf::Vector2f& QuadTree::getCOM()
+{
+    return com;
+}
+
+int& QuadTree::getTotalMass()
+{
+    return totalMass;
 }
 
 template <typename T>
