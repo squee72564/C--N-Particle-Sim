@@ -1,6 +1,6 @@
 #include "ParticleSimulation.hpp"
 
-ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window, int threads)
+ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window, int threads, std::string logfile)
 {
     gameWindow = &window;
     windowWidth = window.getSize().x;
@@ -45,6 +45,66 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
     updateTime = 0;
     moveTime = 0;
     drawTime = 0;
+
+    particles.reserve(1600);
+    leafNodes.reserve(pow(4,NODE_MAX_DEPTH));
+
+    logfileName = logfile;
+}
+
+ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window, int threads, std::string logfile, int nodeCap, int treeDepth)
+{
+    gameWindow = &window;
+    windowWidth = window.getSize().x;
+    windowHeight = window.getSize().y;
+
+    numThreads = threads;
+
+    timeStep = dt;
+    gravity = g;
+    particleMass = 5.0f;
+    gen = std::mt19937(rd());
+    dis = std::uniform_int_distribution<>(0, 255);
+
+    font.loadFromFile("fonts/corbel.TTF");
+
+    particleCountText.setFont(font);
+    particleCountText.setCharacterSize(24);
+    particleCountText.setFillColor(sf::Color::White);
+    particleCountText.setOutlineColor(sf::Color::Blue);
+    particleCountText.setOutlineThickness(1.0f);
+
+    particleMassText.setFont(font);
+    particleMassText.setCharacterSize(12);
+    particleMassText.setFillColor(sf::Color::White);
+    particleMassText.setPosition(0, 100);
+    particleMassText.setOutlineColor(sf::Color::Blue);
+    particleMassText.setOutlineThickness(1.0f);
+
+    velocityText.setFont(font);
+    velocityText.setCharacterSize(10);
+    velocityText.setFillColor(sf::Color::White);
+
+    quadTree = QuadTree(0, windowWidth, windowHeight);
+
+    isRightButtonPressed = false;
+    isAiming = false;
+
+    iterationCount = 0;
+    totalTime = 0;
+    insertionTime = 0;
+    leafnodeTime = 0;
+    updateTime = 0;
+    moveTime = 0;
+    drawTime = 0;
+
+    particles.reserve(1600);
+    leafNodes.reserve(pow(4,NODE_MAX_DEPTH));
+
+    logfileName = logfile;
+
+    NODE_CAPACITY = nodeCap;
+    NODE_MAX_DEPTH = treeDepth;
 }
 
 ParticleSimulation::~ParticleSimulation()
@@ -57,12 +117,13 @@ ParticleSimulation::~ParticleSimulation()
 
 void ParticleSimulation::run()
 {
-    std::string logName = "./log/performance-" + std::to_string(numThreads) + ".txt";
-    std::ofstream outputFile(logName);
+    std::ofstream outputFile(logfileName, std::ios::app);
+
     iterationCount = 0;
     totalTime = 0.0;
 
-    addParticleDiaganol(8, 1600);
+    addParticleDiaganol(4, 800);
+    addParticleDiagonal2(4, 800);
 
     // Run the program as long as the window is open
     while (gameWindow->isOpen())
@@ -77,6 +138,9 @@ void ParticleSimulation::run()
 
         iterationCount++;
         totalTime += duration.count();
+        if (totalTime > 60000) {
+            gameWindow->close();
+        }
     }
     
     double fracInsertTime = static_cast<double>(insertionTime) / totalTime;;
@@ -86,12 +150,20 @@ void ParticleSimulation::run()
     double fracDrawTime = static_cast<double>(drawTime) / totalTime;
     double averageTime = static_cast<double>(totalTime) / iterationCount;
 
-    outputFile << "Average time per iteration: " << averageTime << " ms\n";
-    outputFile << "Proportion of time on inserting particles to quadtree: " << fracInsertTime << "\n";
-    outputFile << "Proportion of time on getting leaf nodes: " << fracLeafNodeTime << "\n";
-    outputFile << "Proportion of time on updating forces: " << fracUpdateTime << "\n";
-    outputFile << "Proportion of time on moving particles: " << fracMoveTime << "\n";
-    outputFile << "Proportion of time on drawing objects to screen: " << fracDrawTime << "\n";
+    
+    outputFile << numThreads << "," << timeStep << "," << NODE_MAX_DEPTH << "," << NODE_CAPACITY << "," << iterationCount << "," << averageTime << "," << fracInsertTime << "," << fracLeafNodeTime << "," << fracUpdateTime << "," << fracMoveTime << "," << fracDrawTime << "\n";
+
+    // outputFile << "Number of threads: " << numThreads << "\n";
+    // outputFile << "Time step: " << timeStep << "\n";
+    // outputFile << "QuadTree max depth: " << NODE_MAX_DEPTH << "\n";
+    // outputFile << "QuadTree node max capacity: " << NODE_CAPACITY << "\n\n";
+    // outputFile << "Total Iterations: " << iterationCount << "\n";
+    // outputFile << "Average time per iteration: " << averageTime << " ms\n";
+    // outputFile << "Proportion of time on inserting particles to quadtree: " << fracInsertTime << "\n";
+    // outputFile << "Proportion of time on getting leaf nodes: " << fracLeafNodeTime << "\n";
+    // outputFile << "Proportion of time on updating forces: " << fracUpdateTime << "\n";
+    // outputFile << "Proportion of time on moving particles: " << fracMoveTime << "\n";
+    // outputFile << "Proportion of time on drawing objects to screen: " << fracDrawTime << std::endl;
 
     outputFile.close();
 
@@ -461,13 +533,35 @@ void ParticleSimulation::addParticleDiaganol(int tiles, int particleNum)
     int col = sqrt(particleNum/tiles);
     int row = col;
 
-    int smallWidth = windowWidth / tiles;
-    int smallHeight = windowHeight / tiles;
+    float smallWidth = static_cast<float>(windowWidth) / tiles;
+    float smallHeight = static_cast<float>(windowHeight) / tiles;
 
     for (int i = 0; i < tiles; i++) {
         for (int j = 0; j < col; j++) {
             for (int k = 0; k < row; k++ ) {
-                particles.emplace_back(Particle(sf::Vector2f((j*smallWidth/col)+smallWidth*i,(k*smallHeight/row)+smallHeight*i), sf::Vector2f(0,0), 1, gen , dis));
+                float x = (j * smallWidth / col) + smallWidth * i;
+                float y = (k * smallHeight / row) + smallHeight * i;
+                particles.emplace_back(Particle(sf::Vector2f(x,y), sf::Vector2f(0,0), 1, gen , dis));
+            }
+        }
+    }
+}
+
+void ParticleSimulation::addParticleDiagonal2(int tiles, int particleNum)
+{
+    int col = sqrt(particleNum / tiles);
+    int row = col;
+
+    float smallWidth = static_cast<float>(windowWidth) / tiles;
+    float smallHeight = static_cast<float>(windowHeight) / tiles;
+
+    for (int i = 0; i < tiles; i++) {
+        for (int j = 0; j < col; j++) {
+            for (int k = 0; k < row; k++) {
+                float x = static_cast<float>(windowWidth) - ((j * smallWidth / col) + smallWidth * i);
+                float y = (k * smallHeight / row) + smallHeight * i;
+
+                particles.emplace_back(Particle(sf::Vector2f(x, y), sf::Vector2f(0, 0), 1, gen, dis));
             }
         }
     }
