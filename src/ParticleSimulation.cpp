@@ -54,6 +54,58 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
     logfileName = logfile;
 }
 
+ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window, int threads, int treeDepth, int nodeCap)
+{
+    gameWindow = &window;
+    windowWidth = window.getSize().x;
+    windowHeight = window.getSize().y;
+
+    numThreads = threads;
+
+    timeStep = dt;
+    gravity = g;
+    particleMass = 5.0f;
+    gen = std::mt19937(rd());
+    dis = std::uniform_int_distribution<>(0, 255);
+
+    font.loadFromFile("fonts/corbel.TTF");
+
+    particleCountText.setFont(font);
+    particleCountText.setCharacterSize(24);
+    particleCountText.setFillColor(sf::Color::White);
+    particleCountText.setOutlineColor(sf::Color::Blue);
+    particleCountText.setOutlineThickness(1.0f);
+
+    particleMassText.setFont(font);
+    particleMassText.setCharacterSize(12);
+    particleMassText.setFillColor(sf::Color::White);
+    particleMassText.setPosition(0, 100);
+    particleMassText.setOutlineColor(sf::Color::Blue);
+    particleMassText.setOutlineThickness(1.0f);
+
+    velocityText.setFont(font);
+    velocityText.setCharacterSize(10);
+    velocityText.setFillColor(sf::Color::White);
+
+    quadTree = QuadTree(0, windowWidth, windowHeight, treeDepth, nodeCap);
+
+    isRightButtonPressed = false;
+    isAiming = false;
+    showQuadTree = true;
+    showVelocity = true;
+
+    iterationCount = 0;
+    totalTime = 0;
+    insertionTime = 0;
+    leafnodeTime = 0;
+    updateTime = 0;
+    moveTime = 0;
+    drawTime = 0;
+
+    particles.reserve(5000);
+    leafNodes.reserve(pow(4,treeDepth));
+}
+
 ParticleSimulation::~ParticleSimulation()
 {
     if (!particles.empty())
@@ -64,8 +116,6 @@ ParticleSimulation::~ParticleSimulation()
 
 void ParticleSimulation::run()
 {
-    std::ofstream outputFile(logfileName, std::ios::app);
-
     iterationCount = 0;
     totalTime = 0.0;
 
@@ -75,45 +125,9 @@ void ParticleSimulation::run()
     // Run the program as long as the window is open
     while (gameWindow->isOpen())
     {
-        auto start = std::chrono::steady_clock::now();
-        
         pollUserEvent();
         updateAndDraw();
-        
-        auto end = std::chrono::steady_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-
-        iterationCount++;
-        totalTime += duration.count();
-        if (totalTime > 60000) {
-            gameWindow->close();
-        }
     }
-    
-    double fracInsertTime = static_cast<double>(insertionTime) / totalTime;;
-    double fracLeafNodeTime = static_cast<double>(leafnodeTime) / totalTime;
-    double fracUpdateTime = static_cast<double>(updateTime) / totalTime;
-    double fracMoveTime = static_cast<double>(moveTime) / totalTime;
-    double fracDrawTime = static_cast<double>(drawTime) / totalTime;
-    double averageTime = static_cast<double>(totalTime) / iterationCount;
-
-    
-    outputFile << numThreads << "," << timeStep << "," << quadTree.getMaxDepth() << "," << quadTree.getNodeCap() << "," << iterationCount << "," << averageTime << "," << fracInsertTime << "," << fracLeafNodeTime << "," << fracUpdateTime << "," << fracMoveTime << "," << fracDrawTime << "\n";
-
-    // outputFile << "Number of threads: " << numThreads << "\n";
-    // outputFile << "Time step: " << timeStep << "\n";
-    // outputFile << "QuadTree max depth: " << NODE_MAX_DEPTH << "\n";
-    // outputFile << "QuadTree node max capacity: " << NODE_CAPACITY << "\n\n";
-    // outputFile << "Total Iterations: " << iterationCount << "\n";
-    // outputFile << "Average time per iteration: " << averageTime << " ms\n";
-    // outputFile << "Proportion of time on inserting particles to quadtree: " << fracInsertTime << "\n";
-    // outputFile << "Proportion of time on getting leaf nodes: " << fracLeafNodeTime << "\n";
-    // outputFile << "Proportion of time on updating forces: " << fracUpdateTime << "\n";
-    // outputFile << "Proportion of time on moving particles: " << fracMoveTime << "\n";
-    // outputFile << "Proportion of time on drawing objects to screen: " << fracDrawTime << std::endl;
-
-    outputFile.close();
-
 }
 
 void ParticleSimulation::pollUserEvent()
@@ -224,7 +238,6 @@ void ParticleSimulation::updateAndDraw()
     gameWindow->draw(particleCountText);
     gameWindow->draw(particleMassText);
 
-    auto insertionStart = std::chrono::steady_clock::now();
     // Insert particles into QuadTree or erase if off screen
     for (std::size_t i = 0; i < particles.size(); ++i)
     {
@@ -241,13 +254,8 @@ void ParticleSimulation::updateAndDraw()
             quadTree.insert(&particles[i]);
         }
     }
-    auto insertionEnd = std::chrono::steady_clock::now();
-    insertionTime += std::chrono::duration_cast<std::chrono::milliseconds>(insertionEnd - insertionStart).count();
-    
-    auto leafNodeStart = std::chrono::steady_clock::now();
-    quadTree.getLeafNodes(leafNodes);
-    auto leafNodeEnd = std::chrono::steady_clock::now();
-    leafnodeTime += std::chrono::duration_cast<std::chrono::milliseconds>(leafNodeEnd - leafNodeStart).count();
+
+    //quadTree.getLeafNodes(leafNodes);
 
     if (!particles.empty())
     {
@@ -258,7 +266,6 @@ void ParticleSimulation::updateAndDraw()
         // Create a vector to store the threads
         std::vector<std::thread> threads;
 
-        auto updateTimeStart = std::chrono::steady_clock::now();
         // Create and start the threads
         for (int i = 0; i < numThreads; i++)
         {
@@ -302,12 +309,9 @@ void ParticleSimulation::updateAndDraw()
         {
             thread.join();
         }
-        auto updateTimeEnd = std::chrono::steady_clock::now();
-        updateTime += std::chrono::duration_cast<std::chrono::milliseconds>(updateTimeEnd - updateTimeStart).count();
 
         threads.clear();
 
-        auto moveTimeStart = std::chrono::steady_clock::now();
         // Create and start the threads
         for (int i = 0; i < numThreads; i++)
         {
@@ -348,10 +352,7 @@ void ParticleSimulation::updateAndDraw()
         {
             thread.join();
         }
-        auto moveTimeEnd = std::chrono::steady_clock::now();
-        moveTime += std::chrono::duration_cast<std::chrono::milliseconds>(moveTimeEnd - moveTimeStart).count();
 
-        auto drawTimeStart = std::chrono::steady_clock::now();
         for (std::size_t i = 0; i < particles.size(); i++)
         {
             // Draw the particle's shape
@@ -363,12 +364,8 @@ void ParticleSimulation::updateAndDraw()
                 drawParticleVelocity(particles[i]);
             }
         }
-        auto drawTimeEnd = std::chrono::steady_clock::now();
-        drawTime += std::chrono::duration_cast<std::chrono::milliseconds>(drawTimeEnd - drawTimeStart).count();
-
     }
 
-    auto drawTimeStart = std::chrono::steady_clock::now();
     // Recursively draw QuadTree rectangles
     if (showQuadTree)
     {
@@ -377,9 +374,6 @@ void ParticleSimulation::updateAndDraw()
     
     // Display the window
     gameWindow->display();
-    auto drawTimeEnd = std::chrono::steady_clock::now();
-    drawTime += std::chrono::duration_cast<std::chrono::milliseconds>(drawTimeEnd - drawTimeStart).count();
-
 }
 
 void ParticleSimulation::drawAimLine() 

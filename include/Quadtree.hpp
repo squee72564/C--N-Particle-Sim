@@ -10,7 +10,7 @@ class QuadTree {
 private:
   int m_level;
   int treeMaxDepth;
-  int nodeCap;
+  unsigned int nodeCap;
 
   float width;
   float height;
