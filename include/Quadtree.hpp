@@ -6,12 +6,11 @@
 #include <mutex>
 #include "Particle.hpp"
 
-static const int NODE_CAPACITY = 4; //This is the capacity at which the quadtree splits; 1 means it divides until max depth
-static const int NODE_MAX_DEPTH = 3;
-
 class QuadTree {
 private:
   int m_level;
+  int treeMaxDepth;
+  int nodeCap;
 
   float width;
   float height;
@@ -32,8 +31,8 @@ private:
 public:
   QuadTree();
   //~QuadTree();
-  QuadTree(const int m_level, sf::Vector2f ori, float h, float w);
-  QuadTree(const int m_level, float h, float w);
+  QuadTree(const int m_level, sf::Vector2f ori, float h, float w, int treeMaxDepth, int nodeCap);
+  QuadTree(const int m_level, float h, float w, int treeMaxDepth, int nodeCap);
   QuadTree(const QuadTree& qt);
   QuadTree(QuadTree&& qt);
   QuadTree& operator=(const QuadTree& other);  
@@ -51,6 +50,8 @@ public:
   std::vector<Particle*>& getParticleVec();
   sf::Vector2f& getCOM();
   int& getTotalMass();
+  int getMaxDepth();
+  int getNodeCap();
 };
 
 template <typename T>

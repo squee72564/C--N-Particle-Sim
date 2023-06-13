@@ -62,8 +62,10 @@ private:
     unsigned long long moveTime;
     unsigned long long drawTime;
 
+    std::string logfileName;
+
 public:
-    ParticleSimulation(float dt, const sf::Vector2f &g, sf::RenderWindow &window, int numThreads);
+    ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window, int numThreads, int treeDepth, int nodeCap, std::string logfile);
     virtual ~ParticleSimulation();
     void run();
     void pollUserEvent();
@@ -73,6 +75,7 @@ public:
     void attractParticleToMousePos(Particle& particle);
     void updateForces(Particle* particle);
     void addParticleDiaganol(int tiles, int numParticles);
+    void addParticleDiagonal2(int tiles, int particleNum);
 };
 
 sf::Vector2f getMousePosition(const sf::RenderWindow &window);

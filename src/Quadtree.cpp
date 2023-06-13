@@ -2,13 +2,16 @@
 
 QuadTree::QuadTree()
   : m_level(0),
+    treeMaxDepth(7),
+    nodeCap(4),
     width(1280),
     height(800),
     isLeaf(true),
     m_subnode{nullptr, nullptr, nullptr, nullptr},
     particleMutex()
 {
-    m_index.reserve(NODE_CAPACITY + 1);
+
+    m_index.reserve(nodeCap + 1);
     m_rect.setPosition(1280-width, 800-height);
     m_rect.setSize(sf::Vector2f(width,height));
     m_rect.setOutlineColor(sf::Color(0,255,0,45));
@@ -20,15 +23,17 @@ QuadTree::QuadTree()
 
 // This constructor is used for all subnodes and takes in a position.
 // The origin of each region is the top left corner, and should be the position passed in.
-QuadTree::QuadTree(const int m_level, sf::Vector2f position, float w, float h)
+QuadTree::QuadTree(const int m_level, sf::Vector2f position, float w, float h, int maxDepth, int capacity)
   : m_level(m_level),
+    treeMaxDepth(maxDepth),
+    nodeCap(capacity),
     width(w),
     height(h),
     isLeaf(true),
     m_subnode{nullptr, nullptr, nullptr, nullptr},
     particleMutex()
 {
-    m_index.reserve(NODE_CAPACITY + 1);
+    m_index.reserve(nodeCap + 1);
     m_rect.setPosition(position);
     m_rect.setSize(sf::Vector2f(width,height));
     m_rect.setOutlineColor(sf::Color(0,255,0,45));
@@ -39,15 +44,17 @@ QuadTree::QuadTree(const int m_level, sf::Vector2f position, float w, float h)
 }
 
 //This constructor is used for the root node and does not take in a starting position
-QuadTree::QuadTree(const int m_level, float w, float h)
+QuadTree::QuadTree(const int m_level, float w, float h, int maxDepth, int capacity)
   : m_level(m_level),
+    treeMaxDepth(maxDepth),
+    nodeCap(capacity),
     width(w),
     height(h),
     isLeaf(true),
     m_subnode{nullptr, nullptr, nullptr, nullptr},
     particleMutex()
 {
-    m_index.reserve(NODE_CAPACITY + 1);
+    m_index.reserve(nodeCap + 1);
     m_rect.setPosition(0,0);
     m_rect.setSize(sf::Vector2f(width,height));
     m_rect.setOutlineColor(sf::Color(0,255,0,45));
@@ -59,6 +66,8 @@ QuadTree::QuadTree(const int m_level, float w, float h)
 
 QuadTree::QuadTree(const QuadTree& qt)
   : m_level(qt.m_level),
+    treeMaxDepth(qt.treeMaxDepth),
+    nodeCap(qt.nodeCap),
     width(qt.width),
     height(qt.height),
     isLeaf(qt.isLeaf),
@@ -76,16 +85,18 @@ QuadTree::QuadTree(const QuadTree& qt)
 }
 
 QuadTree::QuadTree(QuadTree&& qt)
-    : m_level(qt.m_level),
-      width(qt.width),
-      height(qt.height),
-      isLeaf(qt.isLeaf),
-      m_subnode(std::move(qt.m_subnode)),
-      m_index(std::move(qt.m_index)),
-      m_rect(std::move(qt.m_rect)),
-      com(qt.com),
-      totalMass(qt.totalMass),
-      particleMutex()
+  : m_level(qt.m_level),
+    treeMaxDepth(qt.treeMaxDepth),
+    nodeCap(qt.nodeCap),
+    width(qt.width),
+    height(qt.height),
+    isLeaf(qt.isLeaf),
+    m_subnode(std::move(qt.m_subnode)),
+    m_index(std::move(qt.m_index)),
+    m_rect(std::move(qt.m_rect)),
+    com(qt.com),
+    totalMass(qt.totalMass),
+    particleMutex()
 {
     qt.com = sf::Vector2f(0, 0);
     qt.totalMass = 0;
@@ -95,6 +106,8 @@ QuadTree& QuadTree::operator=(const QuadTree& other)
 {
     if (this != &other) {
         m_level = other.m_level;
+        treeMaxDepth = other.treeMaxDepth;
+        nodeCap = other.nodeCap;
         width = other.width;
         height = other.height;
         isLeaf = other.isLeaf;
@@ -111,6 +124,8 @@ QuadTree& QuadTree::operator=(QuadTree&& other)
 {
     if (this != &other) {
         m_level = other.m_level;
+        treeMaxDepth = other.treeMaxDepth;
+        nodeCap = other.nodeCap;
         width = other.width;
         height = other.height;
         isLeaf = other.isLeaf;
@@ -131,16 +146,17 @@ void QuadTree::split()
     isLeaf = false;
 
     // Use current origin position of bounding rectangle to calculate origin position for NW,NE,SW,SE subregions
-    m_subnode[0] = new QuadTree(m_level + 1, sf::Vector2f(m_rect.getPosition().x, m_rect.getPosition().y), width/2, height/2);
+    m_subnode[0] = new QuadTree(m_level + 1, sf::Vector2f(m_rect.getPosition().x, m_rect.getPosition().y),
+                width/2, height/2, treeMaxDepth, nodeCap);
     
     m_subnode[1] = new QuadTree(m_level + 1, sf::Vector2f(m_rect.getPosition().x + width/2,
-			    m_rect.getPosition().y), width/2, height/2);
+			    m_rect.getPosition().y), width/2, height/2, treeMaxDepth, nodeCap);
     
     m_subnode[2] = new QuadTree(m_level + 1, sf::Vector2f(m_rect.getPosition().x,
-			    m_rect.getPosition().y + height/2), width/2, height/2);
+			    m_rect.getPosition().y + height/2), width/2, height/2, treeMaxDepth, nodeCap);
     
     m_subnode[3] = new QuadTree(m_level + 1, sf::Vector2f(m_rect.getPosition().x + width/2,
-			    m_rect.getPosition().y + height/2), width/2, height/2);
+			    m_rect.getPosition().y + height/2), width/2, height/2, treeMaxDepth, nodeCap);
 
     for (Particle* particle : m_index)
     {
@@ -181,9 +197,9 @@ void QuadTree::insert(Particle* particle)
     {
         m_index.push_back(particle);
 
-        if (m_index.size() > NODE_CAPACITY && m_level < NODE_MAX_DEPTH)
+        if (m_index.size() > nodeCap && m_level < treeMaxDepth)
         {
-            this->split();
+            split();
         }
         else
         {
@@ -365,6 +381,16 @@ sf::Vector2f& QuadTree::getCOM()
 int& QuadTree::getTotalMass()
 {
     return totalMass;
+}
+
+int QuadTree::getMaxDepth()
+{
+    return nodeCap;
+}
+
+int QuadTree::getNodeCap()
+{
+    return treeMaxDepth;
 }
 
 template <typename T>
