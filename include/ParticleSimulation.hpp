@@ -65,8 +65,7 @@ private:
     std::string logfileName;
 
 public:
-    ParticleSimulation(float dt, const sf::Vector2f &g, sf::RenderWindow &window, int numThreads, std::string logfile);
-    ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window, int threads, std::string logfile, int nodeCap, int treeDepth);
+    ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window, int numThreads, int treeDepth, int nodeCap, std::string logfile);
     virtual ~ParticleSimulation();
     void run();
     void pollUserEvent();

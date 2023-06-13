@@ -1,6 +1,6 @@
 #include "ParticleSimulation.hpp"
 
-ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window, int threads, std::string logfile)
+ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window, int threads, int treeDepth, int nodeCap, std::string logfile)
 {
     gameWindow = &window;
     windowWidth = window.getSize().x;
@@ -33,10 +33,12 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
     velocityText.setCharacterSize(10);
     velocityText.setFillColor(sf::Color::White);
 
-    quadTree = QuadTree(0, windowWidth, windowHeight);
+    quadTree = QuadTree(0, windowWidth, windowHeight, treeDepth, nodeCap);
 
     isRightButtonPressed = false;
     isAiming = false;
+    showQuadTree = true;
+    showVelocity = true;
 
     iterationCount = 0;
     totalTime = 0;
@@ -46,65 +48,10 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
     moveTime = 0;
     drawTime = 0;
 
-    particles.reserve(1600);
-    leafNodes.reserve(pow(4,NODE_MAX_DEPTH));
+    particles.reserve(5000);
+    leafNodes.reserve(pow(4,treeDepth));
 
     logfileName = logfile;
-}
-
-ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window, int threads, std::string logfile, int nodeCap, int treeDepth)
-{
-    gameWindow = &window;
-    windowWidth = window.getSize().x;
-    windowHeight = window.getSize().y;
-
-    numThreads = threads;
-
-    timeStep = dt;
-    gravity = g;
-    particleMass = 5.0f;
-    gen = std::mt19937(rd());
-    dis = std::uniform_int_distribution<>(0, 255);
-
-    font.loadFromFile("fonts/corbel.TTF");
-
-    particleCountText.setFont(font);
-    particleCountText.setCharacterSize(24);
-    particleCountText.setFillColor(sf::Color::White);
-    particleCountText.setOutlineColor(sf::Color::Blue);
-    particleCountText.setOutlineThickness(1.0f);
-
-    particleMassText.setFont(font);
-    particleMassText.setCharacterSize(12);
-    particleMassText.setFillColor(sf::Color::White);
-    particleMassText.setPosition(0, 100);
-    particleMassText.setOutlineColor(sf::Color::Blue);
-    particleMassText.setOutlineThickness(1.0f);
-
-    velocityText.setFont(font);
-    velocityText.setCharacterSize(10);
-    velocityText.setFillColor(sf::Color::White);
-
-    quadTree = QuadTree(0, windowWidth, windowHeight);
-
-    isRightButtonPressed = false;
-    isAiming = false;
-
-    iterationCount = 0;
-    totalTime = 0;
-    insertionTime = 0;
-    leafnodeTime = 0;
-    updateTime = 0;
-    moveTime = 0;
-    drawTime = 0;
-
-    particles.reserve(1600);
-    leafNodes.reserve(pow(4,NODE_MAX_DEPTH));
-
-    logfileName = logfile;
-
-    NODE_CAPACITY = nodeCap;
-    NODE_MAX_DEPTH = treeDepth;
 }
 
 ParticleSimulation::~ParticleSimulation()
@@ -122,8 +69,8 @@ void ParticleSimulation::run()
     iterationCount = 0;
     totalTime = 0.0;
 
-    addParticleDiaganol(4, 800);
-    addParticleDiagonal2(4, 800);
+    addParticleDiaganol(4, 2500);
+    addParticleDiagonal2(4, 2500);
 
     // Run the program as long as the window is open
     while (gameWindow->isOpen())
@@ -151,7 +98,7 @@ void ParticleSimulation::run()
     double averageTime = static_cast<double>(totalTime) / iterationCount;
 
     
-    outputFile << numThreads << "," << timeStep << "," << NODE_MAX_DEPTH << "," << NODE_CAPACITY << "," << iterationCount << "," << averageTime << "," << fracInsertTime << "," << fracLeafNodeTime << "," << fracUpdateTime << "," << fracMoveTime << "," << fracDrawTime << "\n";
+    outputFile << numThreads << "," << timeStep << "," << quadTree.getMaxDepth() << "," << quadTree.getNodeCap() << "," << iterationCount << "," << averageTime << "," << fracInsertTime << "," << fracLeafNodeTime << "," << fracUpdateTime << "," << fracMoveTime << "," << fracDrawTime << "\n";
 
     // outputFile << "Number of threads: " << numThreads << "\n";
     // outputFile << "Time step: " << timeStep << "\n";

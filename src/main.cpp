@@ -27,15 +27,15 @@ int main()
 
     outputFile.close();
 
-    for (int i = 1; i <= 20; i++) { // 1 - 20 threads
-        for (int j = 2; j <= 7; j++) { // 2 - 7 tree depth
-            for (int k = 2; k <= 5; k++) { //2 - 5 node cap
+    for (int i = 8; i <= 15; i++) { // threads
+        for (int j = 3; j <= 5; j++) { // tree depth
+            for (int k = 3; k <= 5; k++) { // node cap
                 // Create the window
                 sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Particle Simulator");
                 window.setFramerateLimit(60); // Limit the frame rate to 60 FPS
 
                 //Start Particle Simulation
-                ParticleSimulation particleSimulation(TIME_STEP, grav, window, i, logName, k, j);
+                ParticleSimulation particleSimulation(TIME_STEP, grav, window, i, j, k, logName);
                 particleSimulation.run();
             }
         }
