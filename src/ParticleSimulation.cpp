@@ -62,7 +62,7 @@ void ParticleSimulation::run()
     iterationCount = 0;
     totalTime = 0.0;
 
-    addParticleDiaganol(8, 1600);
+    addParticleDiaganol(8, 2400);
 
     // Run the program as long as the window is open
     while (gameWindow->isOpen())
@@ -189,7 +189,7 @@ void ParticleSimulation::updateAndDraw()
     // Clear Quadtree
     quadTree.deleteTree();
 
-    leafNodes.clear();
+    //leafNodes.clear();
 
     // If LMB is pressed, create line for aim and show angle
     if (isAiming)
@@ -263,8 +263,8 @@ void ParticleSimulation::updateAndDraw()
                         this->particles[j].velocity += this->gravity;
 
                         // Update position of particle based on Quadtree
-                        //this->quadTree.updateForces(this->timeStep, &(this->particles[j]));
-                        updateForces(&(this->particles[j]));
+                        this->quadTree.updateForces(this->timeStep, &(this->particles[j]));
+                        //updateForces(&(this->particles[j]));
 
                         // If RMB Pressed, apply attractive force
                         if (this->isRightButtonPressed) {
