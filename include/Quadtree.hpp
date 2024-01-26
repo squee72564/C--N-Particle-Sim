@@ -2,9 +2,19 @@
 #define QUADTREE
 #include <array>
 #include <vector>
+#include <stack>
 #include <algorithm>
 #include <mutex>
 #include "Particle.hpp"
+
+/**TODO
+ * Change this class into a 1d array structure for the quadtree with size
+ * depending on the depth. This will be much more cache friendly than allocating
+ * the new nodes on the heap
+ *
+ * Also the mutex is no longer being used, so we can either use it to synchronize
+ * multiple threads inserting into the tree, or get rid of it alltogether
+ */
 
 class QuadTree {
 private:
@@ -31,8 +41,8 @@ private:
 public:
   QuadTree();
   //~QuadTree();
-  QuadTree(const int m_level, sf::Vector2f ori, float h, float w, int treeMaxDepth, int nodeCap);
-  QuadTree(const int m_level, float h, float w, int treeMaxDepth, int nodeCap);
+  QuadTree(const int m_level, const sf::Vector2f ori, const float h, const float w, const int treeMaxDepth, const int nodeCap);
+  QuadTree(const int m_level, const float h, const float w, const int treeMaxDepth, const int nodeCap);
   QuadTree(const QuadTree& qt);
   QuadTree(QuadTree&& qt);
   QuadTree& operator=(const QuadTree& other);  
@@ -41,7 +51,6 @@ public:
   void split();
   void display(sf::RenderWindow* gameWindow);
   void insert(Particle* particle);
-  void updateForces(float dt, Particle* particle);
   void deleteTree();
   void getLeafNodes(std::vector<QuadTree*>& vec);
   bool contains(sf::Vector2f& pos);
@@ -49,7 +58,7 @@ public:
   std::mutex& getParticleMutex();
   std::vector<Particle*>& getParticleVec();
   sf::Vector2f& getCOM();
-  int& getTotalMass();
+  int getTotalMass();
   int getMaxDepth();
   int getNodeCap();
 };
