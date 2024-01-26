@@ -8,10 +8,10 @@ CXXFLAGS = -Wall -Wextra -Werror -std=c++17 -O3
 SOURCES = src/main.cpp src/Particle.cpp src/ParticleSimulation.cpp src/Quadtree.cpp
 
 # Include directories
-INCLUDES = -I"C:/SFML-2.5.1/include" -I"./include/"
+INCLUDES = -I"./SFML-2.5.1/include" -I"./include/"
 
 # Library directories
-LIB_DIRS = -L"C:/SFML-2.5.1/lib"
+LIB_DIRS = -L"./SFML-2.5.1/lib"
 
 # Libraries to link
 LIBS = -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio -lpthread
