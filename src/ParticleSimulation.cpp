@@ -129,19 +129,13 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
 ParticleSimulation::~ParticleSimulation()
 {
     if (!particles.empty())
-    {
         particles.clear();
-    }
 
     if (!leafNodes.empty())
-    {
         leafNodes.clear();
-    }
 
     if (!threads.empty())
-    {
         threads.clear();
-    }
 }
 
 void ParticleSimulation::run()
@@ -149,7 +143,7 @@ void ParticleSimulation::run()
     iterationCount = 0;
     totalTime = 0.0;
     
-    int nParticles = 2500;
+    int nParticles = 4500;
     addParticleDiaganol(4, nParticles);
     addParticleDiagonal2(4, nParticles);
 
@@ -281,12 +275,6 @@ void ParticleSimulation::updateAndDraw()
             --i;
         } else {
             // Insert valid particle into QuadTree
-
-            // Now that we are not using the quadtree
-            // class functions to update particle positions
-            // we are only ussing it to insert and then get references
-            // to the leaf nodes. Maybe we can get rid of the unused
-            // code and then use the mutex to make the insert operation thread safe
             quadTree.insert(&particles[i]);
         }
     }
@@ -334,9 +322,6 @@ void ParticleSimulation::updateAndDraw()
 
                     }
 
-                    // Apply simulation gravity to the velocity 
-                    //this->particles[j].velocity += this->gravity;
-
                     // If RMB Pressed, apply attractive force
                     if (this->isRightButtonPressed) {
                         attractParticleToMousePos(this->particles[j]);
@@ -346,7 +331,6 @@ void ParticleSimulation::updateAndDraw()
                     this->particles[j].position += this->particles[j].velocity * this->timeStep;
                     this->particles[j].acceleration.x = 0.0f;
                     this->particles[j].acceleration.y = 0.0f;
-                    
                 }
             };
 
@@ -367,7 +351,7 @@ void ParticleSimulation::updateAndDraw()
         for (std::size_t i = 0; i < particles.size(); i++)
         {
             // Set particle circle shape to new position
-            particles[i].shape.setPosition(this->particles[i].position);
+            particles[i].shape.setPosition(particles[i].position);
 
             // Draw the particle's shape
             gameWindow->draw(particles[i].shape);
