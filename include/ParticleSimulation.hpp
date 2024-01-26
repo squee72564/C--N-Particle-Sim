@@ -26,6 +26,7 @@ private:
 
     std::vector<Particle> particles;
     std::vector<QuadTree*> leafNodes;
+    std::vector<std::thread> threads;
 
     sf::Vector2f gravity;
 

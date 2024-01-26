@@ -1,12 +1,13 @@
 #include "ParticleSimulation.hpp"
 
-ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window, int threads, int treeDepth, int nodeCap, std::string logfile)
+ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window, int nthreads, int treeDepth, int nodeCap, std::string logfile)
 {
     gameWindow = &window;
     windowWidth = window.getSize().x;
     windowHeight = window.getSize().y;
 
-    numThreads = threads;
+    numThreads = nthreads;
+    threads.reserve(nthreads);
 
     timeStep = dt;
     gravity = g;
@@ -54,13 +55,14 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
     logfileName = logfile;
 }
 
-ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window, int threads, int treeDepth, int nodeCap)
+ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window, int nthreads, int treeDepth, int nodeCap)
 {
     gameWindow = &window;
     windowWidth = window.getSize().x;
     windowHeight = window.getSize().y;
 
-    numThreads = threads;
+    numThreads = nthreads;
+    threads.reserve(nthreads);
 
     timeStep = dt;
     gravity = g;
@@ -111,6 +113,16 @@ ParticleSimulation::~ParticleSimulation()
     if (!particles.empty())
     {
         particles.clear();
+    }
+
+    if (!leafNodes.empty())
+    {
+        leafNodes.clear();
+    }
+
+    if (!threads.empty())
+    {
+        threads.clear();
     }
 }
 
@@ -263,8 +275,6 @@ void ParticleSimulation::updateAndDraw()
         const std::size_t chunkSize = particles.size() / numThreads;
         const std::size_t remainder = particles.size() % numThreads;
 
-        // Create a vector to store the threads
-        std::vector<std::thread> threads;
 
         // Create and start the threads
         for (int i = 0; i < numThreads; i++)
@@ -290,8 +300,7 @@ void ParticleSimulation::updateAndDraw()
 
                         // Update position of particle based on Quadtree
                         this->quadTree.updateForces(this->timeStep, &(this->particles[j]));
-                        //updateForces(&(this->particles[j]));
-
+                        
                         // If RMB Pressed, apply attractive force
                         if (this->isRightButtonPressed) {
                             attractParticleToMousePos(this->particles[j]);
@@ -352,6 +361,8 @@ void ParticleSimulation::updateAndDraw()
         {
             thread.join();
         }
+
+        threads.clear();
 
         for (std::size_t i = 0; i < particles.size(); i++)
         {
