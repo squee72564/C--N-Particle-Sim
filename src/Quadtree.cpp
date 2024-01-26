@@ -1,5 +1,17 @@
 #include "QuadTree.hpp"
 
+template <typename T>
+static inline float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2)
+{
+    return (vec1.x * vec2.x) + (vec1.y * vec2.y);
+}
+
+static inline float inv_Sqrt(const float number)
+{
+    float squareRoot = sqrt(number);
+    return 1.0f / squareRoot;
+}
+
 QuadTree::QuadTree()
   : m_level(0),
     treeMaxDepth(7),
@@ -23,7 +35,7 @@ QuadTree::QuadTree()
 
 // This constructor is used for all subnodes and takes in a position.
 // The origin of each region is the top left corner, and should be the position passed in.
-QuadTree::QuadTree(const int m_level, sf::Vector2f position, float w, float h, int maxDepth, int capacity)
+QuadTree::QuadTree(const int m_level, const sf::Vector2f position, const float w, const float h, const int maxDepth, const int capacity)
   : m_level(m_level),
     treeMaxDepth(maxDepth),
     nodeCap(capacity),
@@ -44,7 +56,7 @@ QuadTree::QuadTree(const int m_level, sf::Vector2f position, float w, float h, i
 }
 
 //This constructor is used for the root node and does not take in a starting position
-QuadTree::QuadTree(const int m_level, float w, float h, int maxDepth, int capacity)
+QuadTree::QuadTree(const int m_level, const float w, const float h, const int maxDepth, const int capacity)
   : m_level(m_level),
     treeMaxDepth(maxDepth),
     nodeCap(capacity),
@@ -178,189 +190,122 @@ void QuadTree::split()
 
 void QuadTree::display(sf::RenderWindow* gameWindow)
 {
-    if (isLeaf)
-    {
-        gameWindow->draw(m_rect);
-        return;
-    }
+    std::stack<QuadTree*> stack;
 
-    m_subnode[0]->display(gameWindow);
-    m_subnode[1]->display(gameWindow);
-    m_subnode[2]->display(gameWindow);
-    m_subnode[3]->display(gameWindow);
+    // Start with root
+    stack.push(this);
+    
+    while (!stack.empty()) {
+        QuadTree* currentNode = stack.top();
+        stack.pop();
+
+        if (currentNode->isLeaf ) {
+            gameWindow->draw(currentNode->m_rect);
+        } else {
+            for (QuadTree* subNode : currentNode->m_subnode) {
+                stack.push(subNode);
+            }
+        }
+
+    }
 }
 
 void QuadTree::insert(Particle* particle)
 {
-    //If Quadtree node is a leaf node, insert and split if node greater than capacity
-    if (isLeaf)
-    {
-        m_index.push_back(particle);
+    std::stack<QuadTree*> stack;
 
-        if (m_index.size() > nodeCap && m_level < treeMaxDepth)
-        {
-            split();
-        }
-        else
-        {
-            totalMass += particle->mass;
-            com.x += particle->position.x * particle->mass;
-            com.y += particle->position.y * particle->mass;
-        }
-      
-        return;
-    }
+    stack.push(this);
+    
+    while (!stack.empty()) {
+        QuadTree* currentNode = stack.top();
+        stack.pop();
 
-    // If not leaf check subnode which particle is contained in and insert
-    for (QuadTree* subNode : m_subnode)
-    {
-        if (subNode->m_rect.getGlobalBounds().contains(particle->position))
-        {
-            subNode->insert(particle);
-            break;
-        }
-    }
-}
-
-void QuadTree::updateForces(float dt, Particle* particle)
-{
-    if (!isLeaf)
-    {
-        m_subnode[0]->updateForces(dt, particle);
-        m_subnode[1]->updateForces(dt, particle);
-        m_subnode[2]->updateForces(dt, particle);
-        m_subnode[3]->updateForces(dt, particle);
-    }
-    else if (m_rect.getGlobalBounds().contains(particle->position))
-    {
-        for (Particle* other : m_index)
-        {
-            if (other == particle)
-            {
-	            continue;
-            }
-        
-            float distanceSquared = dot(particle->position - other->position, particle->position - other->position);
+        if (currentNode->isLeaf) {
             
-            if (distanceSquared != 0 && distanceSquared > (particle->radius + other->radius) * (particle->radius + other->radius))
+            // We could probably add the mutex lock here if we want to multithread
+
+            currentNode->m_index.push_back(particle);
+
+            if (currentNode->m_index.size() > currentNode->nodeCap && currentNode->m_level < currentNode->treeMaxDepth)
             {
-                particle->acceleration += (other->mass / distanceSquared) * BIG_G * (other->position - particle->position);
+                currentNode->split();
+            }
+            else
+            {
+                currentNode->totalMass += particle->mass;
+                currentNode->com.x += particle->position.x * particle->mass;
+                currentNode->com.y += particle->position.y * particle->mass;
             }
 
-            if (distanceSquared != 0 && distanceSquared <= (particle->radius + other->radius) * (particle->radius + other->radius))
-            {
-                std::lock_guard<std::mutex> lock(particleMutex);
-
-                sf::Vector2f rHat = (other->position - particle->position) * inv_Sqrt(distanceSquared);
-
-                float a1 = dot(particle->velocity, rHat);
-                float a2 = dot(other->velocity, rHat);
-              
-                float p = 2 * particle->mass * other->mass * (a1-a2)/(particle->mass + other->mass);
-
-                particle->velocity -= p/particle->mass * (rHat);
-                other->velocity += p/other->mass * (rHat);
+        } else {
+            for (QuadTree* subNode : currentNode->m_subnode) {
+                if (subNode->m_rect.getGlobalBounds().contains(particle->position))
+                    stack.push(subNode);
             }
-        }    
-    }
-    else if (!m_index.empty())
-    {
-        float x = com.x / totalMass;
-        float y = com.y / totalMass;
-        float distanceSquared = dot(particle->position - sf::Vector2f(x,y), particle->position - sf::Vector2f(x,y));
-        particle->acceleration += (totalMass / distanceSquared) * BIG_G * (sf::Vector2f(x,y) - particle->position);
-    }
+        }
 
-    // // This calculates the new position and velocity after summing all the forces on the particle
-    // if (m_level == 0)
-    // {
-    //     std::lock_guard<std::mutex> lock(particleMutex);
-    //     particle->velocity += particle->acceleration * dt;
-    //     particle->position += particle->velocity * dt;
-	//     particle->acceleration.x = 0.0f;
-	//     particle->acceleration.y = 0.0f;
-    // }
+    }
 }
 
 void QuadTree::deleteTree()
 {
-    // If we are at the base node and it is the leaf clear Particle vector and return;
-    if (m_level == 0 && isLeaf)
-    {
-        com.x = 0.0f;
-	    com.y = 0.0f;
-        totalMass = 0;
-        m_index.clear();
-        return;
+    std::stack<QuadTree*> stack;
+
+    // Start with root
+    stack.push(this);
+    
+    while (!stack.empty()) {
+        QuadTree* currentNode = stack.top();
+        stack.pop();
+
+        if (currentNode->isLeaf ) {
+            currentNode->m_index.clear();
+        } else {
+            for (QuadTree* subNode : currentNode->m_subnode) {
+                stack.push(subNode);
+            }
+        }
+
+        if (currentNode != this)
+            delete currentNode;
+           
     }
 
-    // Loop through subNodes for current node of QuadTree
-    for (QuadTree* subNode : m_subnode)
-    {
-        if (subNode == nullptr) // If one is nullptr all are nullptr so break
-        {
-            break;
-        }
-        else if (subNode->isLeaf) // If subnode is a leaf delete
-        {
-            delete subNode;
-            subNode = nullptr;
-        }
-        else // If not a leaf recursively call down tree, and delete after function returns
-        {
-            subNode->deleteTree();
-            delete subNode;
-            subNode = nullptr;
-        }
-    }
-
-    // Root node is not deleted; just clear Particle vector
-    if ( m_level == 0 )
-    {
-        com.x = 0;
-	    com.y = 0;
-        totalMass = 0;
-        m_index.clear();
-        isLeaf = true;
-    }
+    com.x = 0;
+    com.y = 0;
+    totalMass = 0;
+    isLeaf = true;
 }
 
 void QuadTree::getLeafNodes(std::vector<QuadTree*>& vec)
 {
-    if (isLeaf)
-    {
-        vec.push_back(this);
-        return;
-    }
+    std::stack<QuadTree*> stack;
 
-    m_subnode[0]->getLeafNodes(vec);
-    m_subnode[1]->getLeafNodes(vec);
-    m_subnode[2]->getLeafNodes(vec);
-    m_subnode[3]->getLeafNodes(vec);
+    // Start with root
+    stack.push(this);
+    
+    while (!stack.empty()) {
+        QuadTree* currentNode = stack.top();
+        stack.pop();
+
+        if (currentNode->isLeaf ) {
+            vec.push_back(currentNode);
+        } else {
+            for (QuadTree* subNode : currentNode->m_subnode) {
+                stack.push(subNode);
+            }
+        }
+    }
 }
 
 bool QuadTree::contains(sf::Vector2f& pos)
 {
-    if (m_rect.getGlobalBounds().contains(pos))
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return m_rect.getGlobalBounds().contains(pos);
 }
 
 bool QuadTree::empty()
 {
-    if (m_index.empty())
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return m_index.empty();
 }
 
 std::mutex& QuadTree::getParticleMutex()
@@ -378,7 +323,7 @@ sf::Vector2f& QuadTree::getCOM()
     return com;
 }
 
-int& QuadTree::getTotalMass()
+int QuadTree::getTotalMass()
 {
     return totalMass;
 }
@@ -393,14 +338,3 @@ int QuadTree::getNodeCap()
     return treeMaxDepth;
 }
 
-template <typename T>
-inline float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2)
-{
-    return (vec1.x * vec2.x) + (vec1.y * vec2.y);
-}
-
-inline float inv_Sqrt(float number)
-{
-    float squareRoot = sqrt(number);
-    return 1.0f / squareRoot;
-}

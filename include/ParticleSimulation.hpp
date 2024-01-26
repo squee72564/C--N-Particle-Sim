@@ -26,6 +26,7 @@ private:
 
     std::vector<Particle> particles;
     std::vector<QuadTree*> leafNodes;
+    std::vector<std::thread> threads;
 
     sf::Vector2f gravity;
 
@@ -66,18 +67,17 @@ private:
 
 public:
     ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window, int numThreads, int treeDepth, int nodeCap, std::string logfile);
+    ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window, int numThreads, int treeDepth, int nodeCap);
     virtual ~ParticleSimulation();
     void run();
     void pollUserEvent();
     void updateAndDraw();
-    void drawAimLine();
-    void drawParticleVelocity(Particle& particle);
-    void attractParticleToMousePos(Particle& particle);
-    void updateForces(Particle* particle);
+    inline void drawAimLine();
+    inline void drawParticleVelocity(Particle& particle);
+    inline void attractParticleToMousePos(Particle& particle);
+    void updateForces();
     void addParticleDiaganol(int tiles, int numParticles);
     void addParticleDiagonal2(int tiles, int particleNum);
 };
-
-sf::Vector2f getMousePosition(const sf::RenderWindow &window);
 
 #endif
