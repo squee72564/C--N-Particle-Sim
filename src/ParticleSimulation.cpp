@@ -240,6 +240,11 @@ void ParticleSimulation::pollUserEvent()
     }
 }
 
+DEFINE_API_PROFILER(insertIntoTree);
+DEFINE_API_PROFILER(updateForces);
+DEFINE_API_PROFILER(updateRest);
+DEFINE_API_PROFILER(draw);
+
 void ParticleSimulation::updateAndDraw()
 {
     // Clear the window graphics
@@ -262,116 +267,130 @@ void ParticleSimulation::updateAndDraw()
     gameWindow->draw(particleCountText);
     gameWindow->draw(particleMassText);
 
-    // Insert particles into QuadTree or erase if off screen
-    for (std::size_t i = 0; i < particles.size(); ++i)
     {
-        // Check if the particle's position is outside the window bounds
-        if (particles[i].position.x < 0 || particles[i].position.x > windowWidth ||
-            particles[i].position.y > windowHeight || particles[i].position.y < 0)
-        {
-            // If the particle is outside the window bounds, swap and pop from vector 
-            std::swap(particles[i], particles.back());
-            particles.pop_back();
-            --i;
-        } else {
-            // Insert valid particle into QuadTree
-            quadTree.insert(&particles[i]);
+        API_PROFILER(insertIntoTree);
+
+        // Insert particles into QuadTree or erase if off screen
+        for (std::size_t i = 0; i < particles.size(); ++i) {
+            // Check if the particle's position is outside the window bounds
+            if (particles[i].position.x < 0 || particles[i].position.x > windowWidth ||
+                particles[i].position.y > windowHeight || particles[i].position.y < 0) {
+
+                // If the particle is outside the window bounds, swap and pop from vector 
+                std::swap(particles[i], particles.back());
+                particles.pop_back();
+                --i;
+            } else {
+                // Insert valid particle into QuadTree
+                quadTree.insert(&particles[i]);
+            }
         }
+
     }
 
     // Traverse quadtree to get the leaf nodes
     quadTree.getLeafNodes(leafNodes);
 
 
+    
     if (!isPaused && !particles.empty()) {
         
         // This updates collision/gravity locally for each leaf node
         this->updateForces();
 
-        // Split the particles into equal-sized chunks for each thread
-        const std::size_t chunkSize = particles.size() / numThreads;
-        const std::size_t remainder = particles.size() % numThreads;
-
-        // Create and start the threads
-        for (int i = 0; i < numThreads; i++)
         {
-            // Define the start and end indices for the current chunk
-            const std::size_t startIdx = i * chunkSize;
-            const std::size_t endIdx = (i==numThreads-1) ? startIdx + chunkSize + remainder : startIdx + chunkSize;
+            API_PROFILER(updateRest);
+            // Split the particles into equal-sized chunks for each thread
+            const std::size_t chunkSize = particles.size() / numThreads;
+            const std::size_t remainder = particles.size() % numThreads;
 
-            // Create a lambda function that will be executed by each thread
-            auto threadFunc = [this, startIdx, endIdx]() {
-                for (std::size_t j = startIdx; j < endIdx; j++) {
-
-
-                    // First look through all non empty leaf nodes to and use gravity
-                    // COM for far away attractions
-                    for (std::size_t k = 0; k < leafNodes.size(); k++) {
-
-                        if (leafNodes[k]->empty() || leafNodes[k]->contains(particles[j].position))
-                            continue;
-
-                        const float x = leafNodes[k]->getCOM().x / leafNodes[k]->getTotalMass();
-                        const float y = leafNodes[k]->getCOM().y / leafNodes[k]->getTotalMass();
-
-                        const float distanceSquared = dot(particles[j].position - sf::Vector2f(x,y),
-                                                      particles[j].position - sf::Vector2f(x,y));
-
-                        particles[j].acceleration += (leafNodes[k]->getTotalMass() / distanceSquared) *
-                                                    BIG_G * (sf::Vector2f(x,y) - particles[j].position);
-
-                    }
-
-                    // If RMB Pressed, apply attractive force
-                    if (this->isRightButtonPressed) {
-                        attractParticleToMousePos(this->particles[j]);
-                    }
-
-                    this->particles[j].velocity += this->particles[j].acceleration * this->timeStep;
-                    this->particles[j].position += this->particles[j].velocity * this->timeStep;
-                    this->particles[j].acceleration.x = 0.0f;
-                    this->particles[j].acceleration.y = 0.0f;
-                }
-            };
-
-            // Create a thread and pass the lambda function
-            threads.emplace_back(threadFunc);
-        }
-
-        // Wait for all threads to finish
-        for (auto& thread : threads)
-        {
-            thread.join();
-        }
-
-        threads.clear();
-    }
-    
-    if (!particles.empty()) {
-        for (std::size_t i = 0; i < particles.size(); i++)
-        {
-            // Set particle circle shape to new position
-            particles[i].shape.setPosition(particles[i].position);
-
-            // Draw the particle's shape
-            gameWindow->draw(particles[i].shape);
-
-            // Create visual for particle's velocity vector if toggled
-            if (showVelocity)
+            // Create and start the threads
+            for (int i = 0; i < numThreads; i++)
             {
-                drawParticleVelocity(particles[i]);
+                // Define the start and end indices for the current chunk
+                const std::size_t startIdx = i * chunkSize;
+                const std::size_t endIdx = (i==numThreads-1) ? startIdx + chunkSize + remainder : startIdx + chunkSize;
+
+                // Create a lambda function that will be executed by each thread
+                auto threadFunc = [this, startIdx, endIdx]() {
+
+                    for (std::size_t j = startIdx; j < endIdx; j++) {
+
+
+                        // First look through all non empty leaf nodes to and use gravity
+                        // COM for far away attractions
+                        for (std::size_t k = 0; k < leafNodes.size(); k++) {
+
+                            if (leafNodes[k]->empty() || leafNodes[k]->contains(particles[j].position))
+                                continue;
+
+                            const float x = leafNodes[k]->getCOM().x / leafNodes[k]->getTotalMass();
+                            const float y = leafNodes[k]->getCOM().y / leafNodes[k]->getTotalMass();
+
+                            const float distanceSquared = dot(particles[j].position - sf::Vector2f(x,y),
+                                                          particles[j].position - sf::Vector2f(x,y));
+
+                            particles[j].acceleration += (leafNodes[k]->getTotalMass() / distanceSquared) *
+                                                        BIG_G * (sf::Vector2f(x,y) - particles[j].position);
+
+                        }
+
+                        // If RMB Pressed, apply attractive force
+                        if (this->isRightButtonPressed) {
+                            attractParticleToMousePos(this->particles[j]);
+                        }
+
+                        this->particles[j].velocity += this->particles[j].acceleration * this->timeStep;
+                        this->particles[j].position += this->particles[j].velocity * this->timeStep;
+                        this->particles[j].acceleration.x = 0.0f;
+                        this->particles[j].acceleration.y = 0.0f;
+                    }
+                };
+
+                // Create a thread and pass the lambda function
+                threads.emplace_back(threadFunc);
+            }
+
+            // Wait for all threads to finish
+            for (auto& thread : threads)
+            {
+                thread.join();
+            }
+
+            threads.clear();
+        }
+    }
+
+
+    { 
+        API_PROFILER(draw); 
+
+        if (!particles.empty()) {
+            for (std::size_t i = 0; i < particles.size(); i++)
+            {
+                // Set particle circle shape to new position
+                particles[i].shape.setPosition(particles[i].position);
+
+                // Draw the particle's shape
+                gameWindow->draw(particles[i].shape);
+
+                // Create visual for particle's velocity vector if toggled
+                if (showVelocity)
+                {
+                    drawParticleVelocity(particles[i]);
+                }
+            }
+
+            // Recursively draw QuadTree rectangles
+            if (showQuadTree)
+            {
+                quadTree.display(gameWindow);
             }
         }
-
-        // Recursively draw QuadTree rectangles
-        if (showQuadTree)
-        {
-            quadTree.display(gameWindow);
-        }
-    }
     
-    // Display the window
-    gameWindow->display();
+        // Display the window
+        gameWindow->display();
+    }
 }
 
 inline void ParticleSimulation::drawAimLine() 
@@ -419,6 +438,7 @@ inline void ParticleSimulation::attractParticleToMousePos(Particle& particle)
 
 void ParticleSimulation::updateForces()
 {
+    API_PROFILER(updateForces);
 
     const std::size_t chunkSize = leafNodes.size() / numThreads;
     const std::size_t remainder = leafNodes.size() % numThreads;

@@ -4,6 +4,7 @@
 #include "Simulation.hpp"
 #include "Particle.hpp"
 #include "QuadTree.hpp"
+#include "Profiler.hpp"
 #include <vector>
 #include <thread>
 #include <chrono>
