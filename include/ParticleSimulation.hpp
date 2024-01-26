@@ -72,10 +72,9 @@ public:
     void run();
     void pollUserEvent();
     void updateAndDraw();
-    void drawAimLine();
-    void drawParticleVelocity(Particle& particle);
-    void attractParticleToMousePos(Particle& particle);
-    //void updateForces(Particle* particle);
+    inline void drawAimLine();
+    inline void drawParticleVelocity(Particle& particle);
+    inline void attractParticleToMousePos(Particle& particle);
     void updateForces();
     void addParticleDiaganol(int tiles, int numParticles);
     void addParticleDiagonal2(int tiles, int particleNum);
