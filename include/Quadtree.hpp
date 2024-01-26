@@ -54,9 +54,4 @@ public:
   int getNodeCap();
 };
 
-template <typename T>
-inline float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2);
-
-inline float inv_Sqrt(float number);
-
 #endif

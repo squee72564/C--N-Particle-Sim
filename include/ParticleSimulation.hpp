@@ -80,6 +80,6 @@ public:
     void addParticleDiagonal2(int tiles, int particleNum);
 };
 
-sf::Vector2f getMousePosition(const sf::RenderWindow &window);
+//sf::Vector2f getMousePosition(const sf::RenderWindow &window);
 
 #endif

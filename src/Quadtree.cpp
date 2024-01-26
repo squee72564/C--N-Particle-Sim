@@ -1,5 +1,17 @@
 #include "QuadTree.hpp"
 
+template <typename T>
+static inline float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2)
+{
+    return (vec1.x * vec2.x) + (vec1.y * vec2.y);
+}
+
+static inline float inv_Sqrt(float number)
+{
+    float squareRoot = sqrt(number);
+    return 1.0f / squareRoot;
+}
+
 QuadTree::QuadTree()
   : m_level(0),
     treeMaxDepth(7),
@@ -380,14 +392,3 @@ int QuadTree::getNodeCap()
     return treeMaxDepth;
 }
 
-template <typename T>
-inline float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2)
-{
-    return (vec1.x * vec2.x) + (vec1.y * vec2.y);
-}
-
-inline float inv_Sqrt(float number)
-{
-    float squareRoot = sqrt(number);
-    return 1.0f / squareRoot;
-}
