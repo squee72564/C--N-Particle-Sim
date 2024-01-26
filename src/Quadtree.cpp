@@ -249,7 +249,6 @@ void QuadTree::updateForces(float dt, Particle* particle)
 
             if (distanceSquared != 0 && distanceSquared <= (particle->radius + other->radius) * (particle->radius + other->radius))
             {
-                std::lock_guard<std::mutex> lock(particleMutex);
 
                 sf::Vector2f rHat = (other->position - particle->position) * inv_Sqrt(distanceSquared);
 
@@ -257,6 +256,8 @@ void QuadTree::updateForces(float dt, Particle* particle)
                 float a2 = dot(other->velocity, rHat);
               
                 float p = 2 * particle->mass * other->mass * (a1-a2)/(particle->mass + other->mass);
+
+                std::lock_guard<std::mutex> lock(particleMutex);
 
                 particle->velocity -= p/particle->mass * (rHat);
                 other->velocity += p/other->mass * (rHat);
@@ -341,26 +342,12 @@ void QuadTree::getLeafNodes(std::vector<QuadTree*>& vec)
 
 bool QuadTree::contains(sf::Vector2f& pos)
 {
-    if (m_rect.getGlobalBounds().contains(pos))
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return m_rect.getGlobalBounds().contains(pos);
 }
 
 bool QuadTree::empty()
 {
-    if (m_index.empty())
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return m_index.empty();
 }
 
 std::mutex& QuadTree::getParticleMutex()
