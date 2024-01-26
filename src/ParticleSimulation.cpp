@@ -436,48 +436,133 @@ void ParticleSimulation::attractParticleToMousePos(Particle& particle)
     particle.velocity -= tempForce;
 }
 
-void ParticleSimulation::updateForces(Particle* particle)
+//void ParticleSimulation::updateForces(Particle* particle)
+void ParticleSimulation::updateForces()
 {
-    for (std::size_t i = 0; i < leafNodes.size(); i++)
-    {
-        if (!leafNodes[i]->empty() && leafNodes[i]->contains(particle->position))
-        {
-            for (Particle* other : leafNodes[i]->getParticleVec())
+    /**
+     * We can first use multiple threads to process the leaf nodes only
+     * and resolve collisions and gravitational effects within the node
+     * */
+    std::size_t chunkSize = leafNodes.size() / numThreads;
+    std::size_t remainder = leafNodes.size() % numThreads;
+
+    for (int i = 0; i < numThreads; i++) {
+        const std::size_t startIdx = i * chunkSize;
+        const std::size_t endIdx = (i==numThreads-1) ? startIdx + chunkSize + remainder : startIdx + chunkSize;
+        
+        // Create a lambda function that will be executed by each thread
+        auto threadFunc = [this, startIdx, endIdx]() {
+            for (std::size_t j = startIdx; j < endIdx; j++)
             {
-                if (other == particle)
-                {
+                if (leafNodes[j]->empty()) {
+
                     continue;
-                }
-            
-                float distanceSquared = dot(particle->position - other->position, particle->position - other->position);
-                
-                if (distanceSquared != 0 && distanceSquared > (particle->radius + other->radius) * (particle->radius + other->radius))
-                {
-                    particle->acceleration += (other->mass / distanceSquared) * BIG_G * (other->position - particle->position);
+
                 }
 
-                if (distanceSquared != 0 && distanceSquared <= (particle->radius + other->radius) * (particle->radius + other->radius))
-                {
-                    std::lock_guard<std::mutex> lock(leafNodes[i]->getParticleMutex());
+                for (Particle* particle : leafNodes[j]->getParticleVec()) {
+                    for (Particle* other : leafNodes[j]->getParticleVec()) {
 
-                    sf::Vector2f rHat = (other->position - particle->position) * inv_Sqrt(distanceSquared);
+                        if (other == particle) {
+                            continue;
+                        }
 
-                    float a1 = dot(particle->velocity, rHat);
-                    float a2 = dot(other->velocity, rHat);
-                
-                    float p = 2 * particle->mass * other->mass * (a1-a2)/(particle->mass + other->mass);
+                        const float distanceSquared = dot(particle->position - other->position,
+                                                    particle->position - other->position);
 
-                    particle->velocity -= p/particle->mass * (rHat);
-                    other->velocity += p/other->mass * (rHat);
+                        if (distanceSquared == 0)
+                            continue;
+
+                        const float radiusSquared = (particle->radius + other->radius) *
+                                              (particle->radius + other->radius);
+
+                        const bool is_colliding = (distanceSquared <= radiusSquared);
+                        
+                        if (is_colliding) {
+                            sf::Vector2f rHat = (other->position - particle->position) * inv_Sqrt(distanceSquared);
+
+                            const float a1 = dot(particle->velocity, rHat);
+                            const float a2 = dot(other->velocity, rHat);
+                        
+                            const float p = 2 * particle->mass * other->mass * (a1-a2)/(particle->mass + other->mass);
+                            
+                            // Since threads are split between the leaf nodes, there is no chance that multiple threads will
+                            // read/write to the same particles, since the particles are all unique within the leaf nodes
+                            // and only one thread is assigned to a leaf node.
+
+                            //std::lock_guard<std::mutex> lock(leafNodes[j]->getParticleMutex());
+
+                            particle->velocity -= p/particle->mass * (rHat);
+                            other->velocity += p/other->mass * (rHat);
+
+                        } else {
+
+                            particle->acceleration += (other->mass / distanceSquared) * 
+                                                        BIG_G * (other->position - particle->position);
+                        }
+                    }
                 }
             }
-        } else if (!leafNodes[i]->empty()) {
-            float x = leafNodes[i]->getCOM().x / leafNodes[i]->getTotalMass();
-            float y = leafNodes[i]->getCOM().y / leafNodes[i]->getTotalMass();
-            float distanceSquared = dot(particle->position - sf::Vector2f(x,y), particle->position - sf::Vector2f(x,y));
-            particle->acceleration += (leafNodes[i]->getTotalMass() / distanceSquared) * BIG_G * (sf::Vector2f(x,y) - particle->position);
-        }
+        };
+
+        // Create a thread and pass the lambda function
+        threads.emplace_back(threadFunc);
     }
+
+    // Wait for all threads to finish
+    for (auto& thread : threads)
+    {
+        thread.join();
+    }
+
+    threads.clear();
+
+    /**
+     * For each particle we can go through each leaf node to get the gravity effect
+     * Divide the particle array to chunks and for each particle go through all non empty
+     * nodes that are not a node containing the particle and do the generic gravity calc 
+     * */
+
+    chunkSize = particles.size() / numThreads;
+    remainder = particles.size() % numThreads;
+
+    for (int k = 0; k < numThreads; k++) {
+        const std::size_t startIdx = k * chunkSize;
+        const std::size_t endIdx = (k==numThreads-1) ? startIdx + chunkSize + remainder : startIdx + chunkSize;
+
+        auto threadFunc = [this, startIdx, endIdx]() {
+            for (std::size_t i = startIdx; i < endIdx; i++) {
+                for (std::size_t j = 0; j < leafNodes.size(); j++) {
+
+                    if (leafNodes[j]->empty() || leafNodes[j]->contains(particles[i].position))
+                        continue;
+
+                    const float x = leafNodes[j]->getCOM().x / leafNodes[j]->getTotalMass();
+                    const float y = leafNodes[j]->getCOM().y / leafNodes[j]->getTotalMass();
+
+                    const float distanceSquared = dot(particles[i].position - sf::Vector2f(x,y),
+                                                  particles[i].position - sf::Vector2f(x,y));
+
+                    particles[i].acceleration += (leafNodes[j]->getTotalMass() / distanceSquared) *
+                                                BIG_G * (sf::Vector2f(x,y) - particles[i].position);
+
+                }
+
+            }
+
+        };
+
+        // Create a thread and pass the lambda function
+        threads.emplace_back(threadFunc);
+    }
+    
+    // Wait for all threads to finish
+    for (auto& thread : threads)
+    {
+        thread.join();
+    }
+
+    threads.clear();
 }
 
 void ParticleSimulation::addParticleDiaganol(int tiles, int particleNum)

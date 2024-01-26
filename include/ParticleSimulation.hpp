@@ -75,7 +75,8 @@ public:
     void drawAimLine();
     void drawParticleVelocity(Particle& particle);
     void attractParticleToMousePos(Particle& particle);
-    void updateForces(Particle* particle);
+    //void updateForces(Particle* particle);
+    void updateForces();
     void addParticleDiaganol(int tiles, int numParticles);
     void addParticleDiagonal2(int tiles, int particleNum);
 };
