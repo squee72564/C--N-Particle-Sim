@@ -159,6 +159,12 @@ void ParticleSimulation::run()
     iterationCount = 0;
     totalTime = 0.0;
     
+    addParticleDiagonal(5, 1500);
+    addParticleDiagonal(3, 1500);
+
+    addParticleDiagonal2(5, 1500);
+    addParticleDiagonal2(3, 1500);
+    
     // Run the program as long as the window is open
     while (gameWindow->isOpen())
     {
@@ -506,7 +512,7 @@ void ParticleSimulation::updateForces()
     threads.clear();
 }
 
-void ParticleSimulation::addParticleDiaganol(int tiles, int particleNum)
+void ParticleSimulation::addParticleDiagonal(int tiles, int particleNum)
 {
     int col = sqrt(particleNum/tiles);
     int row = col;
