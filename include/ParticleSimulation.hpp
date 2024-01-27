@@ -52,6 +52,7 @@ private:
     sf::Text particleCountText;
     sf::Text particleMassText;
     sf::Text velocityText;
+    sf::Text isPausedText;
 
     sf::Event event;
 

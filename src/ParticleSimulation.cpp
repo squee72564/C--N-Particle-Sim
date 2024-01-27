@@ -52,6 +52,14 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
     velocityText.setCharacterSize(10);
     velocityText.setFillColor(sf::Color::White);
 
+    isPausedText.setFont(font);
+    isPausedText.setCharacterSize(24);
+    isPausedText.setFillColor(sf::Color::White);
+    isPausedText.setOutlineColor(sf::Color::Red);
+    isPausedText.setOutlineThickness(1.0f);
+    isPausedText.setString("Paused");
+    isPausedText.setPosition(0, 50);
+
     quadTree = QuadTree(0, windowWidth, windowHeight, treeDepth, nodeCap);
 
     isRightButtonPressed = false;
@@ -106,6 +114,14 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
     velocityText.setFont(font);
     velocityText.setCharacterSize(10);
     velocityText.setFillColor(sf::Color::White);
+
+    isPausedText.setFont(font);
+    isPausedText.setCharacterSize(24);
+    isPausedText.setFillColor(sf::Color::White);
+    isPausedText.setOutlineColor(sf::Color::Red);
+    isPausedText.setOutlineThickness(1.0f);
+    isPausedText.setString("Paused");
+    isPausedText.setPosition(0, 50);
 
     quadTree = QuadTree(0, windowWidth, windowHeight, treeDepth, nodeCap);
 
@@ -250,9 +266,6 @@ void ParticleSimulation::updateAndDraw()
         current_mousePosF = getMousePosition(*gameWindow);
     }
 
-    if (isAiming) {
-        drawAimLine();
-    }
     
     // Update the particle count & mass text
     particleCountText.setString("Particle count: " + std::to_string(particles.size()));
@@ -261,6 +274,7 @@ void ParticleSimulation::updateAndDraw()
     // Draw the particle count & mass text
     gameWindow->draw(particleCountText);
     gameWindow->draw(particleMassText);
+
 
     // Insert particles into QuadTree or erase if off screen
     for (std::size_t i = 0; i < particles.size(); ++i)
@@ -361,6 +375,14 @@ void ParticleSimulation::updateAndDraw()
             {
                 drawParticleVelocity(particles[i]);
             }
+        }
+
+        if (isPaused) {
+            gameWindow->draw(isPausedText);
+        }
+
+        if (isAiming) {
+            drawAimLine();
         }
 
         // Recursively draw QuadTree rectangles
