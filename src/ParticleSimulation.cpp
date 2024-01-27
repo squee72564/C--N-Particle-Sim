@@ -52,6 +52,14 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
     velocityText.setCharacterSize(10);
     velocityText.setFillColor(sf::Color::White);
 
+    isPausedText.setFont(font);
+    isPausedText.setCharacterSize(24);
+    isPausedText.setFillColor(sf::Color::White);
+    isPausedText.setOutlineColor(sf::Color::Red);
+    isPausedText.setOutlineThickness(1.0f);
+    isPausedText.setString("Paused");
+    isPausedText.setPosition(0, 50);
+
     quadTree = QuadTree(0, windowWidth, windowHeight, treeDepth, nodeCap);
 
     isRightButtonPressed = false;
@@ -107,6 +115,14 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
     velocityText.setCharacterSize(10);
     velocityText.setFillColor(sf::Color::White);
 
+    isPausedText.setFont(font);
+    isPausedText.setCharacterSize(24);
+    isPausedText.setFillColor(sf::Color::White);
+    isPausedText.setOutlineColor(sf::Color::Red);
+    isPausedText.setOutlineThickness(1.0f);
+    isPausedText.setString("Paused");
+    isPausedText.setPosition(0, 50);
+
     quadTree = QuadTree(0, windowWidth, windowHeight, treeDepth, nodeCap);
 
     isRightButtonPressed = false;
@@ -143,10 +159,11 @@ void ParticleSimulation::run()
     iterationCount = 0;
     totalTime = 0.0;
     
-    int nParticles = 6000;
-    addParticleDiaganol(5, nParticles);
-    addParticleDiagonal2(5, nParticles);
-
+    addParticleDiagonal(5, 2000);
+    addParticleDiagonal(3, 2000);
+    addParticleDiagonal2(5, 2000);
+    addParticleDiagonal2(3, 2000);
+    
     // Run the program as long as the window is open
     while (gameWindow->isOpen())
     {
@@ -258,14 +275,9 @@ void ParticleSimulation::updateAndDraw()
     if (isRightButtonPressed || isAiming) {
         current_mousePosF = getMousePosition(*gameWindow);
     }
+
     
-    // Update the particle count & mass text
-    particleCountText.setString("Particle count: " + std::to_string(particles.size()));
-    particleMassText.setString("Particle mass: " + std::to_string( int(particleMass) ));
-    
-    // Draw the particle count & mass text
-    gameWindow->draw(particleCountText);
-    gameWindow->draw(particleMassText);
+
 
     {
         API_PROFILER(insertIntoTree);
@@ -294,9 +306,11 @@ void ParticleSimulation::updateAndDraw()
 
     
     if (!isPaused && !particles.empty()) {
-        
-        // This updates collision/gravity locally for each leaf node
-        this->updateForces();
+        {
+            API_PROFILER(updateForces);
+            // This updates collision/gravity locally for each leaf node
+            this->updateForces();
+        }
 
         {
             API_PROFILER(updateRest);
@@ -381,13 +395,28 @@ void ParticleSimulation::updateAndDraw()
                 }
             }
 
-            // Recursively draw QuadTree rectangles
-            if (showQuadTree)
-            {
-                quadTree.display(gameWindow);
-            }
+        if (isAiming) {
+            drawAimLine();
         }
+
+        // Recursively draw QuadTree rectangles
+        if (showQuadTree)
+        {
+            quadTree.display(gameWindow);
+        }
+    }
+
+    // Update the particle count & mass text
+    particleCountText.setString("Particle count: " + std::to_string(particles.size()));
+    particleMassText.setString("Particle mass: " + std::to_string( int(particleMass) ));
     
+    // Draw the particle count & mass text
+    gameWindow->draw(particleCountText);
+    gameWindow->draw(particleMassText);
+
+    if (isPaused) {
+        gameWindow->draw(isPausedText);
+    }
         // Display the window
         gameWindow->display();
     }
@@ -438,7 +467,6 @@ inline void ParticleSimulation::attractParticleToMousePos(Particle& particle)
 
 void ParticleSimulation::updateForces()
 {
-    API_PROFILER(updateForces);
 
     const std::size_t chunkSize = leafNodes.size() / numThreads;
     const std::size_t remainder = leafNodes.size() % numThreads;
@@ -503,7 +531,7 @@ void ParticleSimulation::updateForces()
     threads.clear();
 }
 
-void ParticleSimulation::addParticleDiaganol(int tiles, int particleNum)
+void ParticleSimulation::addParticleDiagonal(int tiles, int particleNum)
 {
     int col = sqrt(particleNum/tiles);
     int row = col;
