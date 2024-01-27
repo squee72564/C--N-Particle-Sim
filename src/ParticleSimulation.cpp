@@ -143,10 +143,6 @@ void ParticleSimulation::run()
     iterationCount = 0;
     totalTime = 0.0;
     
-    int nParticles = 4500;
-    addParticleDiaganol(4, nParticles);
-    addParticleDiagonal2(4, nParticles);
-
     // Run the program as long as the window is open
     while (gameWindow->isOpen())
     {
@@ -252,6 +248,10 @@ void ParticleSimulation::updateAndDraw()
     // If LMB is pressed, create line for aim and show angle
     if (isRightButtonPressed || isAiming) {
         current_mousePosF = getMousePosition(*gameWindow);
+    }
+
+    if (isAiming) {
+        drawAimLine();
     }
     
     // Update the particle count & mass text
