@@ -159,11 +159,11 @@ void ParticleSimulation::run()
     iterationCount = 0;
     totalTime = 0.0;
     
-    addParticleDiagonal(5, 1500);
-    addParticleDiagonal(3, 1500);
+    addParticleDiagonal(5, 2000);
+    addParticleDiagonal(3, 2000);
 
-    addParticleDiagonal2(5, 1500);
-    addParticleDiagonal2(3, 1500);
+    addParticleDiagonal2(5, 2000);
+    addParticleDiagonal2(3, 2000);
     
     // Run the program as long as the window is open
     while (gameWindow->isOpen())
