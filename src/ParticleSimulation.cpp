@@ -267,13 +267,6 @@ void ParticleSimulation::updateAndDraw()
     }
 
     
-    // Update the particle count & mass text
-    particleCountText.setString("Particle count: " + std::to_string(particles.size()));
-    particleMassText.setString("Particle mass: " + std::to_string( int(particleMass) ));
-    
-    // Draw the particle count & mass text
-    gameWindow->draw(particleCountText);
-    gameWindow->draw(particleMassText);
 
 
     // Insert particles into QuadTree or erase if off screen
@@ -377,10 +370,6 @@ void ParticleSimulation::updateAndDraw()
             }
         }
 
-        if (isPaused) {
-            gameWindow->draw(isPausedText);
-        }
-
         if (isAiming) {
             drawAimLine();
         }
@@ -390,6 +379,18 @@ void ParticleSimulation::updateAndDraw()
         {
             quadTree.display(gameWindow);
         }
+    }
+
+    // Update the particle count & mass text
+    particleCountText.setString("Particle count: " + std::to_string(particles.size()));
+    particleMassText.setString("Particle mass: " + std::to_string( int(particleMass) ));
+    
+    // Draw the particle count & mass text
+    gameWindow->draw(particleCountText);
+    gameWindow->draw(particleMassText);
+
+    if (isPaused) {
+        gameWindow->draw(isPausedText);
     }
     
     // Display the window
