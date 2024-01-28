@@ -1,4 +1,5 @@
 #include "ParticleSimulation.hpp"
+#include <iostream>
 
 // Delta Time
 const float TIME_STEP = 0.002f;
@@ -18,7 +19,9 @@ int main()
 
     //Start Particle Simulation
     ParticleSimulation particleSimulation(TIME_STEP, grav, window, 10, 5, 24);
+    std::cout << "Starting particle sim...\n";
     particleSimulation.run();
+    std::cout << "Particle sim ended\n";
 
     return 0;
 }

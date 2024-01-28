@@ -1,331 +1,301 @@
 #include "QuadTree.hpp"
 
-template <typename T>
-static inline float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2)
-{
-    return (vec1.x * vec2.x) + (vec1.y * vec2.y);
+static inline QuadTree::Node createNode(const int m_level, const int w, const int h, const sf::Vector2f ori) {
+    QuadTree::Node ret;
+    ret.m_level = m_level;
+    ret.m_rect.setScale(sf::Vector2f(w,h));
+    ret.m_rect.setOrigin(ori);
+    ret.isLeaf = true;
+    ret.com.x = 0;
+    ret.com.y = 0;
+    ret.totalMass = 0;
+    ret.m_index.reserve(24);
+
+    return ret;
 }
 
-static inline float inv_Sqrt(const float number)
+void QuadTree::initTree()
 {
-    float squareRoot = sqrt(number);
-    return 1.0f / squareRoot;
+    const int totalNodes = pow(4,treeMaxDepth+1)-1;
+
+    std::stack<int> stack;
+
+    // Start with root
+    stack.push(0);
+
+    nodes[0] = createNode(
+                    0,
+                    1920,
+                    1080,
+                    sf::Vector2f(0,0));
+    
+    while (!stack.empty()) {
+        const int currIdx = stack.top();
+        stack.pop();
+
+        if (currIdx >= totalNodes)
+            continue;
+
+        assert(currIdx < static_cast<int>(nodes.capacity()));
+
+        const QuadTree::Node& currentNode = nodes[currIdx];
+
+        const int currDepth = currentNode.m_level;
+
+        if (currDepth >= treeMaxDepth)
+            continue;
+
+        const int w = currentNode.m_rect.getScale().x;
+        const int h = currentNode.m_rect.getScale().y;
+        const sf::Vector2f currOrigin = currentNode.m_rect.getOrigin();
+
+        const sf::Vector2f childOrigins[4]= {
+            currOrigin,
+            sf::Vector2f(currOrigin.x + w/2, currOrigin.y), 
+            sf::Vector2f(currOrigin.x, currOrigin.y + h/2), 
+            sf::Vector2f(currOrigin.x + w/2, currOrigin.y + h/2), 
+        };
+        
+        for (int i = 1; i <= 4; i++) {
+            const int child_idx = 4 * currIdx + i;
+
+            nodes[child_idx] = createNode(
+                                    currDepth+1,
+                                    w,
+                                    h,
+                                    childOrigins[i-1]);
+
+            stack.push(child_idx);
+        }
+
+    }
 }
 
 QuadTree::QuadTree()
-  : m_level(0),
-    treeMaxDepth(7),
-    nodeCap(4),
-    width(1280),
-    height(800),
-    isLeaf(true),
-    m_subnode{nullptr, nullptr, nullptr, nullptr},
-    particleMutex()
+  : treeMaxDepth(7),
+    nodeCap(4)
 {
-
-    m_index.reserve(nodeCap + 1);
-    m_rect.setPosition(1280-width, 800-height);
-    m_rect.setSize(sf::Vector2f(width,height));
-    m_rect.setOutlineColor(sf::Color(0,255,0,45));
-    m_rect.setOutlineThickness(1);
-    m_rect.setFillColor(sf::Color::Transparent);
-    totalMass = 0;
-    com = sf::Vector2f(0,0);
+    std::cout << "Default Constructor for QuadTree called.\n";
 }
 
-// This constructor is used for all subnodes and takes in a position.
-// The origin of each region is the top left corner, and should be the position passed in.
-QuadTree::QuadTree(const int m_level, const sf::Vector2f position, const float w, const float h, const int maxDepth, const int capacity)
-  : m_level(m_level),
-    treeMaxDepth(maxDepth),
-    nodeCap(capacity),
-    width(w),
-    height(h),
-    isLeaf(true),
-    m_subnode{nullptr, nullptr, nullptr, nullptr},
-    particleMutex()
+QuadTree::QuadTree(const int maxDepth, const int capacity)
+  : treeMaxDepth(maxDepth),
+    nodeCap(capacity)
 {
-    m_index.reserve(nodeCap + 1);
-    m_rect.setPosition(position);
-    m_rect.setSize(sf::Vector2f(width,height));
-    m_rect.setOutlineColor(sf::Color(0,255,0,45));
-    m_rect.setOutlineThickness(1);
-    m_rect.setFillColor(sf::Color::Transparent);
-    totalMass = 0;
-    com = sf::Vector2f(0,0);
+    std::cout << "Non-default Constructor for QuadTree called.\n";
+    // Initially set up vector for nodes, this will depend on max depth
+    const int totalPossibleNodes = pow(4,treeMaxDepth+1)-1;
+    nodes.reserve(totalPossibleNodes);
+    std::cout << "Nodes reserved.\nSetting up quadtree...\n";
+    initTree();
+    std::cout << "Tree initialized.\n";
 }
 
-//This constructor is used for the root node and does not take in a starting position
-QuadTree::QuadTree(const int m_level, const float w, const float h, const int maxDepth, const int capacity)
-  : m_level(m_level),
-    treeMaxDepth(maxDepth),
-    nodeCap(capacity),
-    width(w),
-    height(h),
-    isLeaf(true),
-    m_subnode{nullptr, nullptr, nullptr, nullptr},
-    particleMutex()
+QuadTree::QuadTree(const QuadTree& other)
 {
-    m_index.reserve(nodeCap + 1);
-    m_rect.setPosition(0,0);
-    m_rect.setSize(sf::Vector2f(width,height));
-    m_rect.setOutlineColor(sf::Color(0,255,0,45));
-    m_rect.setOutlineThickness(1);
-    m_rect.setFillColor(sf::Color::Transparent);
-    totalMass = 0;
-    com = sf::Vector2f(0,0);
+    treeMaxDepth = other.treeMaxDepth;
+    nodeCap = other.nodeCap;
+    nodes = other.nodes;
 }
 
-QuadTree::QuadTree(const QuadTree& qt)
-  : m_level(qt.m_level),
-    treeMaxDepth(qt.treeMaxDepth),
-    nodeCap(qt.nodeCap),
-    width(qt.width),
-    height(qt.height),
-    isLeaf(qt.isLeaf),
-    m_subnode{qt.m_subnode},
-    m_index{qt.m_index},
-    particleMutex()
+QuadTree::QuadTree(QuadTree&& other) noexcept
 {
-    m_rect.setPosition(qt.m_rect.getPosition());
-    m_rect.setSize(sf::Vector2f(width,height));
-    m_rect.setOutlineColor(sf::Color(0,255,0,45));
-    m_rect.setOutlineThickness(1);
-    m_rect.setFillColor(sf::Color::Transparent);
-    totalMass = qt.totalMass;
-    com = qt.com;
+    treeMaxDepth = std::exchange(other.treeMaxDepth, 0);
+    nodeCap = std::exchange(other.nodeCap, 0);
+    nodes = std::move(other.nodes);
 }
 
-QuadTree::QuadTree(QuadTree&& qt)
-  : m_level(qt.m_level),
-    treeMaxDepth(qt.treeMaxDepth),
-    nodeCap(qt.nodeCap),
-    width(qt.width),
-    height(qt.height),
-    isLeaf(qt.isLeaf),
-    m_subnode(std::move(qt.m_subnode)),
-    m_index(std::move(qt.m_index)),
-    m_rect(std::move(qt.m_rect)),
-    com(qt.com),
-    totalMass(qt.totalMass),
-    particleMutex()
-{
-    qt.com = sf::Vector2f(0, 0);
-    qt.totalMass = 0;
-}
-
-QuadTree& QuadTree::operator=(const QuadTree& other)
+QuadTree::operator=(const QuadTree& other)
 {
     if (this != &other) {
-        m_level = other.m_level;
         treeMaxDepth = other.treeMaxDepth;
         nodeCap = other.nodeCap;
-        width = other.width;
-        height = other.height;
-        isLeaf = other.isLeaf;
-        m_subnode = other.m_subnode;
-        m_index = other.m_index;
-        m_rect = other.m_rect;
-        com = other.com;
-        totalMass = other.totalMass;
+        nodes = other.nodes;
     }
+
+    return *this;
+}
+ 
+QuadTree::operator=(QuadTree&& other) noexcept
+{
+    if (this != &other) {
+        treeMaxDepth = std::exchange(other.treeMaxDepth, 0);
+        nodeCap = std::exchange(other.nodeCap, 0);
+        nodes = std::move(other.nodes);
+    }
+
     return *this;
 }
 
-QuadTree& QuadTree::operator=(QuadTree&& other)
+QuadTree::QuadTree::~QuadTree() {
 {
-    if (this != &other) {
-        m_level = other.m_level;
-        treeMaxDepth = other.treeMaxDepth;
-        nodeCap = other.nodeCap;
-        width = other.width;
-        height = other.height;
-        isLeaf = other.isLeaf;
-        m_subnode = std::move(other.m_subnode);
-        m_index = std::move(other.m_index);
-        m_rect = std::move(other.m_rect);
-        com = other.com;
-        totalMass = other.totalMass;
-        other.com = sf::Vector2f(0, 0);
-        other.totalMass = 0;
-    }
-    return *this;
+    deleteTree();
+    nodes.clear();
 }
 
-
-void QuadTree::split()
+void QuadTree::display(sf::RenderWindow* gameWindow)
 {
-    isLeaf = false;
+    std::stack<int> stack;
 
-    // Use current origin position of bounding rectangle to calculate origin position for NW,NE,SW,SE subregions
-    m_subnode[0] = new QuadTree(m_level + 1, sf::Vector2f(m_rect.getPosition().x, m_rect.getPosition().y),
-                width/2, height/2, treeMaxDepth, nodeCap);
+    // Start with root
+    stack.push(0);
     
-    m_subnode[1] = new QuadTree(m_level + 1, sf::Vector2f(m_rect.getPosition().x + width/2,
-			    m_rect.getPosition().y), width/2, height/2, treeMaxDepth, nodeCap);
-    
-    m_subnode[2] = new QuadTree(m_level + 1, sf::Vector2f(m_rect.getPosition().x,
-			    m_rect.getPosition().y + height/2), width/2, height/2, treeMaxDepth, nodeCap);
-    
-    m_subnode[3] = new QuadTree(m_level + 1, sf::Vector2f(m_rect.getPosition().x + width/2,
-			    m_rect.getPosition().y + height/2), width/2, height/2, treeMaxDepth, nodeCap);
+    while (!stack.empty()) {
+        const int currIdx = stack.top();
+        const QuadTree::Node& currentNode = nodes[currIdx];
+        stack.pop();
 
-    for (Particle* particle : m_index)
-    {
-        for (QuadTree* subNode : m_subnode)
-        {
-            if (subNode->m_rect.getGlobalBounds().contains(particle->position))
-            {
-                subNode->insert(particle);
+        if (currentNode.isLeaf) {
+            gameWindow->draw(currentNode.m_rect);
+        } else {
+            for (int i = 1; i <= 4; i++) {
+                const int child_idx = 4 * currIdx + i;
+                stack.push(child_idx);
+            }
+        }
+    }
+}
+
+void QuadTree::insert(Particle& particle, int rootIdx)
+{
+    std::stack<int> stack;
+
+    stack.push(rootIdx);
+    
+    while (!stack.empty()) {
+        const int currIdx = stack.top();
+        stack.pop();
+
+        QuadTree::Node& currNode = nodes[currIdx];
+        const int currDepth = currNode.m_level;
+
+        if (currNode.isLeaf) {
+            
+            currNode.m_index.push_back(particle);
+            static size_t particleNum = currNode.m_index.size();
+
+            if (particleNum > nodeCap && currDepth < treeMaxDepth) {
+                split(currIdx);
+            } else {
+                currNode.totalMass += particle.mass;
+                currNode.com.x += particle.position.x * particle.mass;
+                currNode.com.y += particle.position.y * particle.mass;
+            }
+
+            continue;
+        }
+
+        
+        for (int i = 1; i <= 4; i++) {
+            const int child_idx = 4 * currIdx + i;
+
+            if (nodes[child_idx].m_rect.getGlobalBounds().contains(particle.position)) {
+                stack.push(child_idx);
+                break;
+            }
+        }
+    }
+}
+
+void QuadTree::split(const int parentIdx)
+{
+    QuadTree::Node& parentNode = nodes[parentIdx];
+    parentNode.isLeaf = false;
+
+    for (Particle& particle : parentNode.m_index) {
+        for (int i = 1; i <= 4; i++) {
+            const int child_idx = 4 * parentIdx + i;
+            if (contains(nodes[child_idx], particle.position)) {
+                insert(particle, child_idx);
                 break;
             }
         }
     }
 
-    m_index.clear();
-    totalMass = 0;
-    com.x = 0;
-    com.y = 0;
-}
-
-void QuadTree::display(sf::RenderWindow* gameWindow)
-{
-    std::stack<QuadTree*> stack;
-
-    // Start with root
-    stack.push(this);
-    
-    while (!stack.empty()) {
-        QuadTree* currentNode = stack.top();
-        stack.pop();
-
-        if (currentNode->isLeaf ) {
-            gameWindow->draw(currentNode->m_rect);
-        } else {
-            for (QuadTree* subNode : currentNode->m_subnode) {
-                stack.push(subNode);
-            }
-        }
-
-    }
-}
-
-void QuadTree::insert(Particle* particle)
-{
-    std::stack<QuadTree*> stack;
-
-    stack.push(this);
-    
-    while (!stack.empty()) {
-        QuadTree* currentNode = stack.top();
-        stack.pop();
-
-        if (currentNode->isLeaf) {
-            
-            // We could probably add the mutex lock here if we want to multithread
-
-            currentNode->m_index.push_back(particle);
-
-            if (currentNode->m_index.size() > currentNode->nodeCap && currentNode->m_level < currentNode->treeMaxDepth)
-            {
-                currentNode->split();
-            }
-            else
-            {
-                currentNode->totalMass += particle->mass;
-                currentNode->com.x += particle->position.x * particle->mass;
-                currentNode->com.y += particle->position.y * particle->mass;
-            }
-
-        } else {
-            for (QuadTree* subNode : currentNode->m_subnode) {
-                if (subNode->m_rect.getGlobalBounds().contains(particle->position))
-                    stack.push(subNode);
-            }
-        }
-
-    }
+    parentNode.m_index.clear();
+    parentNode.totalMass = 0;
+    parentNode.com.x = 0;
+    parentNode.com.y = 0;
 }
 
 void QuadTree::deleteTree()
 {
-    std::stack<QuadTree*> stack;
+    std::stack<int> stack;
 
     // Start with root
-    stack.push(this);
+    stack.push(0);
     
     while (!stack.empty()) {
-        QuadTree* currentNode = stack.top();
+        const int currIdx = stack.top();
+        QuadTree::Node& currentNode = nodes[currIdx];
         stack.pop();
 
-        if (currentNode->isLeaf ) {
-            currentNode->m_index.clear();
+        std::cout << "At node idx " << currIdx << " at depth " << currentNode.m_level << "\n";
+
+        if (currentNode.isLeaf) {
+            std::cout << "-\tis a leaf so clear vector\n";
+            currentNode.m_index.clear();
+            std::cout << "-\t\tdone clearing vector\n";
         } else {
-            for (QuadTree* subNode : currentNode->m_subnode) {
-                stack.push(subNode);
+            std::cout << "-\tis not a leaf\n";
+            for (int i = 1; i <= 4; i++) {
+                stack.push(4 * currIdx + i);
             }
         }
 
-        if (currentNode != this)
-            delete currentNode;
-           
+        currentNode.com.x = 0;
+        currentNode.com.y = 0;
+        currentNode.totalMass = 0;
+        currentNode.isLeaf = true;
     }
-
-    com.x = 0;
-    com.y = 0;
-    totalMass = 0;
-    isLeaf = true;
 }
 
-void QuadTree::getLeafNodes(std::vector<QuadTree*>& vec)
+void QuadTree::getLeafNodes(std::vector<std::reference_wrapper<QuadTree::Node>>& vec)
 {
-    std::stack<QuadTree*> stack;
+    std::stack<int> stack;
 
     // Start with root
-    stack.push(this);
+    stack.push(0);
     
     while (!stack.empty()) {
-        QuadTree* currentNode = stack.top();
+        const int currIdx = stack.top();
+        const QuadTree::Node& currentNode = nodes[currIdx];
         stack.pop();
 
-        if (currentNode->isLeaf ) {
-            vec.push_back(currentNode);
+        if (currentNode.isLeaf) {
+            vec.push_back(nodes[currIdx]);
         } else {
-            for (QuadTree* subNode : currentNode->m_subnode) {
-                stack.push(subNode);
+            for (int i = 1; i <= 4; i++) {
+                const int child_idx = 4 * currIdx + i;
+                stack.push(child_idx);
             }
         }
     }
 }
 
-bool QuadTree::contains(sf::Vector2f& pos)
+bool QuadTree::contains(const QuadTree::Node& node, const sf::Vector2f& pos)
 {
-    return m_rect.getGlobalBounds().contains(pos);
+    return node.m_rect.getGlobalBounds().contains(pos);
 }
 
-bool QuadTree::empty()
+bool QuadTree::empty(const QuadTree::Node& node)
 {
-    return m_index.empty();
+    return node.m_index.empty();
 }
 
-std::mutex& QuadTree::getParticleMutex()
+const std::vector<std::reference_wrapper<Particle>>& QuadTree::getParticleVec(const QuadTree::Node& node)
 {
-    return particleMutex;
+    return node.m_index;
 }
 
-std::vector<Particle*>& QuadTree::getParticleVec()
+const sf::Vector2f& QuadTree::getCOM(const QuadTree::Node& node)
 {
-    return m_index;
+    return node.com;
 }
 
-sf::Vector2f& QuadTree::getCOM()
+int QuadTree::getTotalMass(const QuadTree::Node& node)
 {
-    return com;
-}
-
-int QuadTree::getTotalMass()
-{
-    return totalMass;
+    return node.totalMass;
 }
 
 int QuadTree::getMaxDepth()

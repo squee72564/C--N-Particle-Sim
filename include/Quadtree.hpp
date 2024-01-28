@@ -3,8 +3,16 @@
 #include <array>
 #include <vector>
 #include <stack>
+
 #include <algorithm>
 #include <mutex>
+
+#include <functional>
+#include <cassert>
+#include <utility>
+
+#include <iostream>
+
 #include "Particle.hpp"
 
 /**TODO
@@ -16,49 +24,49 @@
  * multiple threads inserting into the tree, or get rid of it alltogether
  */
 
+
 class QuadTree {
+
+public:
+  struct Node {
+    int m_level;
+
+    sf::RectangleShape m_rect;
+
+    bool isLeaf;
+
+    sf::Vector2f com;
+    int totalMass;
+
+    std::vector<std::reference_wrapper<Particle>> m_index;
+
+  };
+
 private:
-  int m_level;
   int treeMaxDepth;
   unsigned int nodeCap;
-
-  float width;
-  float height;
-
-  bool isLeaf;
-
-  std::array<QuadTree*, 4> m_subnode;
-  
-  std::vector<Particle*> m_index;
-
-  sf::RectangleShape m_rect;
-
-  sf::Vector2f com;
-  int totalMass;
-
-  std::mutex particleMutex;
+  std::vector<QuadTree::Node> nodes;
 
 public:
   QuadTree();
-  //~QuadTree();
-  QuadTree(const int m_level, const sf::Vector2f ori, const float h, const float w, const int treeMaxDepth, const int nodeCap);
-  QuadTree(const int m_level, const float h, const float w, const int treeMaxDepth, const int nodeCap);
-  QuadTree(const QuadTree& qt);
-  QuadTree(QuadTree&& qt);
-  QuadTree& operator=(const QuadTree& other);  
-  QuadTree& operator=(QuadTree&& other);  
-  
-  void split();
+  QuadTree(const int maxDepth, const int capacity);
+  QuadTree(const QuadTree& other);
+  QuadTree(QuadTree&& other) noexcept;
+  QuadTree operator=(const QuadTree& other);
+  QuadTree operator=(QuadTree&& other) noexcept;
+  ~QuadTree();
+
+  void initTree();
   void display(sf::RenderWindow* gameWindow);
-  void insert(Particle* particle);
+  void insert(Particle& particle, int index);
+  void split(const int);
   void deleteTree();
-  void getLeafNodes(std::vector<QuadTree*>& vec);
-  bool contains(sf::Vector2f& pos);
-  bool empty();
-  std::mutex& getParticleMutex();
-  std::vector<Particle*>& getParticleVec();
-  sf::Vector2f& getCOM();
-  int getTotalMass();
+  void getLeafNodes(std::vector<std::reference_wrapper<QuadTree::Node>>& vec);
+  bool contains(const QuadTree::Node&, const sf::Vector2f& pos);
+  bool empty(const QuadTree::Node&);
+  const std::vector<std::reference_wrapper<Particle>>& getParticleVec(const QuadTree::Node&);
+  const sf::Vector2f& getCOM(const QuadTree::Node&);
+  int getTotalMass(const QuadTree::Node&);
   int getMaxDepth();
   int getNodeCap();
 };
