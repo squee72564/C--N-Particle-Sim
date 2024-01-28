@@ -25,7 +25,7 @@ private:
     QuadTree quadTree;
 
     std::vector<Particle> particles;
-    std::vector<std::reference_wrapper<QuadTree::Node>> leafNodes;
+    std::vector<QuadTree::Node*> leafNodes;
     std::vector<std::thread> threads;
 
     sf::Vector2f gravity;

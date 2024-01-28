@@ -179,9 +179,7 @@ void ParticleSimulation::run()
     while (gameWindow->isOpen())
     {
         pollUserEvent();
-        std::cout << "Done polling event.\n";
         updateAndDraw();
-        std::cout << "Done updating and drawing.\n";
     }
 }
 
@@ -276,7 +274,6 @@ void ParticleSimulation::updateAndDraw()
     gameWindow->clear();
     // Clear Quadtree
     quadTree.deleteTree();
-    std::cout << "quadTree.deleteTree called\n";
 
     leafNodes.clear();
 
@@ -299,21 +296,18 @@ void ParticleSimulation::updateAndDraw()
             --i;
         } else {
             // Insert valid particle into QuadTree
-            quadTree.insert(particles[i], 0);
+            quadTree.insert(&particles[i], 0);
         }
     }
-    std::cout << "Particles inserted into quadtree\n";
 
     // Traverse quadtree to get the leaf nodes
     quadTree.getLeafNodes(leafNodes);
-    std::cout << "quadTree.getLeafNodes called\n";
 
 
     if (!isPaused && !particles.empty()) {
         
         // This updates collision/gravity locally for each leaf node
         updateForces();
-        std::cout << "update forces called\n";
 
         // Split the particles into equal-sized chunks for each thread
         const std::size_t chunkSize = particles.size() / numThreads;
@@ -374,7 +368,6 @@ void ParticleSimulation::updateAndDraw()
 
         threads.clear();
 
-        std::cout << "other update forces done\n";
     }
     
     if (!particles.empty()) {
@@ -403,7 +396,6 @@ void ParticleSimulation::updateAndDraw()
             quadTree.display(gameWindow);
         }
     }
-    std::cout << "done drawing particles and tree\n";
 
     // Update the particle count & mass text
     particleCountText.setString("Particle count: " + std::to_string(particles.size()));
@@ -482,38 +474,38 @@ void ParticleSimulation::updateForces()
                 if (quadTree.empty(leafNodes[j]))
                     continue;
 
-                for (Particle& particle : quadTree.getParticleVec(leafNodes[j])) {
-                    for (Particle& other : quadTree.getParticleVec(leafNodes[j])) {
+                for (Particle* particle : quadTree.getParticleVec(leafNodes[j])) {
+                    for (Particle* other : quadTree.getParticleVec(leafNodes[j])) {
 
-                        if (&other == &particle)
+                        if (other == particle)
                             continue;
 
-                        const float distanceSquared = dot(particle.position - other.position,
-                                                    particle.position - other.position);
+                        const float distanceSquared = dot(particle->position - other->position,
+                                                    particle->position - other->position);
 
                         if (distanceSquared == 0)
                             continue;
 
-                        const float radiusSquared = (particle.radius + other.radius) *
-                                              (particle.radius + other.radius);
+                        const float radiusSquared = (particle->radius + other->radius) *
+                                              (particle->radius + other->radius);
 
                         const bool is_colliding = (distanceSquared <= radiusSquared);
                         
                         if (is_colliding) {
-                            sf::Vector2f rHat = (other.position - particle.position) * inv_Sqrt(distanceSquared);
+                            sf::Vector2f rHat = (other->position - particle->position) * inv_Sqrt(distanceSquared);
 
-                            const float a1 = dot(particle.velocity, rHat);
-                            const float a2 = dot(other.velocity, rHat);
+                            const float a1 = dot(particle->velocity, rHat);
+                            const float a2 = dot(other->velocity, rHat);
                         
-                            const float p = 2 * particle.mass * other.mass * (a1-a2)/(particle.mass + other.mass);
+                            const float p = 2 * particle->mass * other->mass * (a1-a2)/(particle->mass + other->mass);
                             
-                            particle.velocity -= p/particle.mass * (rHat);
-                            other.velocity += p/other.mass * (rHat);
+                            particle->velocity -= p/particle->mass * (rHat);
+                            other->velocity += p/other->mass * (rHat);
 
                         } else {
 
-                            particle.acceleration += (other.mass / distanceSquared) * 
-                                                        BIG_G * (other.position - particle.position);
+                            particle->acceleration += (other->mass / distanceSquared) * 
+                                                        BIG_G * (other->position - particle->position);
                         }
                     }
                 }
@@ -533,7 +525,6 @@ void ParticleSimulation::updateForces()
 
 void ParticleSimulation::addParticleDiagonal(int tiles, int particleNum)
 {
-    std::cout << "addParticleDiagonal(" << tiles << "," << particleNum << ") called.\n";
     int col = sqrt(particleNum/tiles);
     int row = col;
 
@@ -553,7 +544,6 @@ void ParticleSimulation::addParticleDiagonal(int tiles, int particleNum)
 
 void ParticleSimulation::addParticleDiagonal2(int tiles, int particleNum)
 {
-    std::cout << "addParticleDiagonal2(" << tiles << "," << particleNum << ") called.\n";
     int col = sqrt(particleNum / tiles);
     int row = col;
 
