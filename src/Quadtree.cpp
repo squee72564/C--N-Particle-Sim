@@ -1,17 +1,5 @@
 #include "QuadTree.hpp"
 
-template <typename T>
-static inline float dot(const sf::Vector2<T>& vec1, const sf::Vector2<T>& vec2)
-{
-    return (vec1.x * vec2.x) + (vec1.y * vec2.y);
-}
-
-static inline float inv_Sqrt(const float number)
-{
-    float squareRoot = sqrt(number);
-    return 1.0f / squareRoot;
-}
-
 QuadTree::QuadTree()
   : m_level(0),
     treeMaxDepth(7),
@@ -19,8 +7,7 @@ QuadTree::QuadTree()
     width(1280),
     height(800),
     isLeaf(true),
-    m_subnode{nullptr, nullptr, nullptr, nullptr},
-    particleMutex()
+    m_subnode{nullptr, nullptr, nullptr, nullptr}
 {
 
     m_index.reserve(nodeCap + 1);
@@ -42,8 +29,7 @@ QuadTree::QuadTree(const int m_level, const sf::Vector2f position, const float w
     width(w),
     height(h),
     isLeaf(true),
-    m_subnode{nullptr, nullptr, nullptr, nullptr},
-    particleMutex()
+    m_subnode{nullptr, nullptr, nullptr, nullptr}
 {
     m_index.reserve(nodeCap + 1);
     m_rect.setPosition(position);
@@ -63,8 +49,7 @@ QuadTree::QuadTree(const int m_level, const float w, const float h, const int ma
     width(w),
     height(h),
     isLeaf(true),
-    m_subnode{nullptr, nullptr, nullptr, nullptr},
-    particleMutex()
+    m_subnode{nullptr, nullptr, nullptr, nullptr}
 {
     m_index.reserve(nodeCap + 1);
     m_rect.setPosition(0,0);
@@ -84,8 +69,7 @@ QuadTree::QuadTree(const QuadTree& qt)
     height(qt.height),
     isLeaf(qt.isLeaf),
     m_subnode{qt.m_subnode},
-    m_index{qt.m_index},
-    particleMutex()
+    m_index{qt.m_index}
 {
     m_rect.setPosition(qt.m_rect.getPosition());
     m_rect.setSize(sf::Vector2f(width,height));
@@ -107,8 +91,7 @@ QuadTree::QuadTree(QuadTree&& qt)
     m_index(std::move(qt.m_index)),
     m_rect(std::move(qt.m_rect)),
     com(qt.com),
-    totalMass(qt.totalMass),
-    particleMutex()
+    totalMass(qt.totalMass)
 {
     qt.com = sf::Vector2f(0, 0);
     qt.totalMass = 0;
@@ -210,6 +193,8 @@ void QuadTree::display(sf::RenderWindow* gameWindow)
     }
 }
 
+
+
 void QuadTree::insert(Particle* particle)
 {
     std::stack<QuadTree*> stack;
@@ -223,7 +208,6 @@ void QuadTree::insert(Particle* particle)
         if (currentNode->isLeaf) {
             
             // We could probably add the mutex lock here if we want to multithread
-
             currentNode->m_index.push_back(particle);
 
             if (currentNode->m_index.size() > currentNode->nodeCap && currentNode->m_level < currentNode->treeMaxDepth)
@@ -236,6 +220,7 @@ void QuadTree::insert(Particle* particle)
                 currentNode->com.x += particle->position.x * particle->mass;
                 currentNode->com.y += particle->position.y * particle->mass;
             }
+
 
         } else {
             for (QuadTree* subNode : currentNode->m_subnode) {
@@ -308,11 +293,6 @@ bool QuadTree::empty()
     return m_index.empty();
 }
 
-std::mutex& QuadTree::getParticleMutex()
-{
-    return particleMutex;
-}
-
 std::vector<Particle*>& QuadTree::getParticleVec()
 {
     return m_index;
@@ -330,11 +310,17 @@ int QuadTree::getTotalMass()
 
 int QuadTree::getMaxDepth()
 {
-    return nodeCap;
+    return treeMaxDepth;
 }
 
 int QuadTree::getNodeCap()
 {
-    return treeMaxDepth;
+    return nodeCap;
 }
+
+void QuadTree::setMaxDepth(unsigned int depth)
+{
+    treeMaxDepth = depth;
+}
+
 

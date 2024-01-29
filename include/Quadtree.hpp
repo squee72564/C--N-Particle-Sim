@@ -36,8 +36,6 @@ private:
   sf::Vector2f com;
   int totalMass;
 
-  std::mutex particleMutex;
-
 public:
   QuadTree();
   //~QuadTree();
@@ -55,12 +53,12 @@ public:
   void getLeafNodes(std::vector<QuadTree*>& vec);
   bool contains(sf::Vector2f& pos);
   bool empty();
-  std::mutex& getParticleMutex();
   std::vector<Particle*>& getParticleVec();
   sf::Vector2f& getCOM();
   int getTotalMass();
   int getMaxDepth();
   int getNodeCap();
+  void setMaxDepth(unsigned int);
 };
 
 #endif
