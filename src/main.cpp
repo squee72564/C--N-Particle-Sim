@@ -17,7 +17,7 @@ int main()
     window.setFramerateLimit(60); // Limit the frame rate to 60 FPS
 
     //Start Particle Simulation
-    ParticleSimulation particleSimulation(TIME_STEP, grav, window, 10, 5, 24);
+    ParticleSimulation particleSimulation(TIME_STEP, grav, window, 10, 7, 256);
     particleSimulation.run();
 
     return 0;
