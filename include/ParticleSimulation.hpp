@@ -44,6 +44,7 @@ private:
 
     bool showVelocity;
     bool showQuadTree;
+    bool showParticles;
 
     bool isPaused;
     

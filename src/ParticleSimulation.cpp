@@ -62,10 +62,12 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
 
     quadTree = QuadTree(0, windowWidth, windowHeight, treeDepth, nodeCap);
 
+    isPaused = true;
     isRightButtonPressed = false;
     isAiming = false;
     showQuadTree = true;
     showVelocity = true;
+    showParticles = true;
 
     iterationCount = 0;
     totalTime = 0;
@@ -125,10 +127,12 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
 
     quadTree = QuadTree(0, windowWidth, windowHeight, treeDepth, nodeCap);
 
+    isPaused = true;
     isRightButtonPressed = false;
     isAiming = false;
     showQuadTree = true;
     showVelocity = true;
+    showParticles = true;
 
     iterationCount = 0;
     totalTime = 0;
@@ -138,7 +142,7 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
     moveTime = 0;
     drawTime = 0;
 
-    particles.reserve(5000);
+    particles.reserve(8192);
     leafNodes.reserve(pow(4,treeDepth));
 }
 
@@ -159,10 +163,10 @@ void ParticleSimulation::run()
     iterationCount = 0;
     totalTime = 0.0;
     
-    addParticleDiagonal(5, 2000);
-    addParticleDiagonal(3, 2000);
-    addParticleDiagonal2(5, 2000);
-    addParticleDiagonal2(3, 2000);
+    addParticleDiagonal(5, 5000);
+    addParticleDiagonal(3, 5000);
+    addParticleDiagonal2(5, 5000);
+    addParticleDiagonal2(3, 5000);
     
     // Run the program as long as the window is open
     while (gameWindow->isOpen())
@@ -186,12 +190,12 @@ void ParticleSimulation::pollUserEvent()
             case sf::Event::KeyPressed:	// Key press
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z))
                 {
-                    if (particleMass < 10) { /**particleMass += 0.5;*/ }
+                    if (quadTree.getMaxDepth() >= 0) { quadTree.setMaxDepth(quadTree.getMaxDepth()-1); }
                 }
 
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::X))
                 {
-                    if (particleMass > 1) { /**particleMass -= 0.5;*/ }
+                    if (quadTree.getMaxDepth() < 10) { quadTree.setMaxDepth(quadTree.getMaxDepth()+1); }
                 }
 
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::I))
@@ -207,6 +211,11 @@ void ParticleSimulation::pollUserEvent()
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::P))
                 {
                     isPaused = (isPaused) ? false : true;
+                }
+
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::L))
+                {
+                    showParticles = (showParticles) ? false : true;
                 }
 
                 break;
@@ -276,25 +285,22 @@ void ParticleSimulation::updateAndDraw()
         current_mousePosF = getMousePosition(*gameWindow);
     }
 
-    
-
 
     {
         API_PROFILER(insertIntoTree);
-
-        // Insert particles into QuadTree or erase if off screen
-        for (std::size_t i = 0; i < particles.size(); ++i) {
+        for (std::size_t j = 0; j < particles.size(); j++) {
             // Check if the particle's position is outside the window bounds
-            if (particles[i].position.x < 0 || particles[i].position.x > windowWidth ||
-                particles[i].position.y > windowHeight || particles[i].position.y < 0) {
-
+            if (particles[j].position.x < 0 || particles[j].position.x > windowWidth ||
+                particles[j].position.y > windowHeight || particles[j].position.y < 0) {
+                
                 // If the particle is outside the window bounds, swap and pop from vector 
-                std::swap(particles[i], particles.back());
+                std::swap(particles[j], particles.back());
                 particles.pop_back();
-                --i;
+
+                --j;
             } else {
                 // Insert valid particle into QuadTree
-                quadTree.insert(&particles[i]);
+                quadTree.insert(&particles[j]);
             }
         }
 
@@ -302,8 +308,6 @@ void ParticleSimulation::updateAndDraw()
 
     // Traverse quadtree to get the leaf nodes
     quadTree.getLeafNodes(leafNodes);
-
-
     
     if (!isPaused && !particles.empty()) {
         {
@@ -313,10 +317,10 @@ void ParticleSimulation::updateAndDraw()
         }
 
         {
-            API_PROFILER(updateRest);
-            // Split the particles into equal-sized chunks for each thread
             const std::size_t chunkSize = particles.size() / numThreads;
             const std::size_t remainder = particles.size() % numThreads;
+
+            API_PROFILER(updateRest);
 
             // Create and start the threads
             for (int i = 0; i < numThreads; i++)
@@ -380,30 +384,37 @@ void ParticleSimulation::updateAndDraw()
         API_PROFILER(draw); 
 
         if (!particles.empty()) {
-            for (std::size_t i = 0; i < particles.size(); i++)
-            {
-                // Set particle circle shape to new position
-                particles[i].shape.setPosition(particles[i].position);
+            if (showParticles) { 
+                sf::VertexArray points(sf::Points, particles.size());
+                for (std::size_t i = 0; i < particles.size(); i++) {
+                    // Set particle circle shape to new position
+                    particles[i].shape.setPosition(particles[i].position);
 
-                // Draw the particle's shape
-                gameWindow->draw(particles[i].shape);
+                    // Draw the particle's shape
+                    //gameWindow->draw(particles[i].shape);
+                    points[i].position = particles[i].position;
+                    points[i].color = particles[i].shape.getFillColor();
 
-                // Create visual for particle's velocity vector if toggled
-                if (showVelocity)
-                {
-                    drawParticleVelocity(particles[i]);
+                    // Create visual for particle's velocity vector if toggled
+                    if (showVelocity) {
+                        drawParticleVelocity(particles[i]);
+                    }
                 }
+                
+                gameWindow->draw(points);
+
             }
 
-        if (isAiming) {
-            drawAimLine();
-        }
 
         // Recursively draw QuadTree rectangles
         if (showQuadTree)
         {
             quadTree.display(gameWindow);
         }
+    }
+
+    if (isAiming) {
+        drawAimLine();
     }
 
     // Update the particle count & mass text
