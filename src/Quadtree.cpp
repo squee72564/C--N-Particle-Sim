@@ -196,20 +196,20 @@ void QuadTree::insert(Particle* particle, int rootIdx)
         const int currIdx = stack.top();
         stack.pop();
 
-        QuadTree::Node* currNode = &nodes[currIdx];
-        const int currDepth = currNode->m_level;
+        QuadTree::Node& currNode = nodes[currIdx];
+        const int currDepth = currNode.m_level;
 
-        if (currNode->isLeaf) {
+        if (currNode.isLeaf) {
             
-            currNode->m_index.emplace_back(particle);
-            const size_t particleNum = currNode->m_index.size();
+            currNode.m_index.emplace_back(particle);
+            const size_t particleNum = currNode.m_index.size();
 
             if (particleNum > nodeCap && currDepth < treeMaxDepth) {
                 split(currIdx);
             } else {
-                currNode->totalMass += particle->mass;
-                currNode->com.x += particle->position.x * particle->mass;
-                currNode->com.y += particle->position.y * particle->mass;
+                currNode.totalMass += particle->mass;
+                currNode.com.x += particle->position.x * particle->mass;
+                currNode.com.y += particle->position.y * particle->mass;
             }
 
             continue;
@@ -289,9 +289,12 @@ sf::Vector2f QuadTree::getLeafNodes(std::vector<QuadTree::Node*>& vec, int n)
         stack.pop();
 
         if (currentNode->isLeaf) {
+            if (currentNode->m_index.empty()) {
+                continue;
+            }
+            //std::cout << "Pushing back idx " << currIdx << "\n";
             vec.push_back(currentNode);
-            if (!currentNode->m_index.empty())
-                globalCOM += currentNode->com;
+            globalCOM += currentNode->com;
         } else {
             for (int i = 1; i <= 4; i++) {
                 const int child_idx = 4 * currIdx + i;
