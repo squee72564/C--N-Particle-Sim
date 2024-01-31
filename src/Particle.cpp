@@ -7,8 +7,8 @@ Particle::Particle()
 {
     radius = 1;
     shape.setRadius(radius); // Set the radius of the circle to the mass of the particle
+    shape.setOrigin(shape.getRadius()/2, shape.getRadius()/2);
     shape.setFillColor(sf::Color(255, 255, 255)); //white
-    shape.setOrigin(mass, mass); // Set the origin of the circle to its center
     acceleration = sf::Vector2f(0,0);
 }
 
@@ -19,8 +19,8 @@ Particle::Particle(const sf::Vector2f pos, const sf::Vector2f vel, float m, std:
 {
     radius = m;
     shape.setRadius(radius); // Set the radius of the circle to the mass of the particle
+    shape.setOrigin(shape.getRadius()/2, shape.getRadius()/2);
     shape.setFillColor(sf::Color(dis(gen), dis(gen), dis(gen))); //multicolored
-    shape.setOrigin(mass, mass); // Set the origin of the circle to its center
     acceleration = sf::Vector2f(0,0);
 }
 
