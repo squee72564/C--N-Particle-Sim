@@ -2,7 +2,7 @@
 #define PROFILER_H
 
 // Comment this out or set to zero to disable
-#define ENABLE_API_PROFILER 1
+#define ENABLE_API_PROFILER 0
 
 #if ENABLE_API_PROFILER
 

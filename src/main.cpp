@@ -2,7 +2,7 @@
 #include <iostream>
 
 // Delta Time
-const float TIME_STEP = 0.002f;
+const float TIME_STEP = 0.0007f;
 
 // Window dimensions
 const int WINDOW_WIDTH = 1920;
@@ -18,7 +18,7 @@ int main()
     window.setFramerateLimit(60); // Limit the frame rate to 60 FPS
 
     //Start Particle Simulation
-    ParticleSimulation particleSimulation(TIME_STEP, grav, window, 10, 6, 64);
+    ParticleSimulation particleSimulation(TIME_STEP, grav, window, 10, 8, 128);
     std::cout << "Starting particle sim...\n";
     particleSimulation.run();
     std::cout << "Particle sim ended\n";
