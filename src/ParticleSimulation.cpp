@@ -150,7 +150,7 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
     moveTime = 0;
     drawTime = 0;
 
-    particles.reserve(5000);
+    particles.reserve(8096);
     leafNodes.reserve(pow(4,treeDepth));
 }
 
@@ -270,6 +270,12 @@ void ParticleSimulation::pollUserEvent()
     }
 }
 
+DEFINE_API_PROFILER(PopAndSwap);
+DEFINE_API_PROFILER(InsertIntoQuadTree);
+DEFINE_API_PROFILER(UpdateForces);
+DEFINE_API_PROFILER(UpdateForces2);
+DEFINE_API_PROFILER(Draw);
+
 void ParticleSimulation::updateAndDraw()
 {
     // Clear the window graphics
@@ -284,7 +290,8 @@ void ParticleSimulation::updateAndDraw()
         current_mousePosF = getMousePosition(*gameWindow);
     }
 
-
+    {
+    API_PROFILER(PopAndSwap);
     // Insert particles into QuadTree or erase if off screen
     for (std::size_t i = 0; i < particles.size(); ++i)
     {
@@ -298,24 +305,36 @@ void ParticleSimulation::updateAndDraw()
             --i;
         }
     }
+    }
 
+
+    {
+    API_PROFILER(InsertIntoQuadTree);
     for (std::size_t i = 0; i < particles.size(); ++i)
     {
         // Insert valid particle into QuadTree
         quadTree.insert(&particles[i], 0);
     }
 
+    }
+
     // Traverse quadtree to get the leaf nodes
-    quadTree.getLeafNodes(leafNodes);
+    globalCOM = quadTree.getLeafNodes(leafNodes, particles.size());
 
     if (!isPaused && !particles.empty()) {
         
+        {
+        API_PROFILER(UpdateForces);
         // This updates collision/gravity locally for each leaf node
         updateForces();
+        }
 
         // Split the particles into equal-sized chunks for each thread
         const std::size_t chunkSize = particles.size() / numThreads;
         const std::size_t remainder = particles.size() % numThreads;
+
+        {
+        API_PROFILER(UpdateForces2);
 
         // Create and start the threads
         for (int i = 0; i < numThreads; i++)
@@ -372,8 +391,13 @@ void ParticleSimulation::updateAndDraw()
 
         threads.clear();
 
+        }
+
     }
     
+    {
+    API_PROFILER(Draw);
+
     if (!particles.empty()) {
 
         sf::VertexArray points(sf::Points, particles.size());
@@ -400,6 +424,11 @@ void ParticleSimulation::updateAndDraw()
         if (showQuadTree)
         {
             quadTree.display(gameWindow);
+            sf::CircleShape circle(20.0f);
+            circle.setOrigin(circle.getRadius(), circle.getRadius());
+            circle.setPosition(globalCOM);
+            circle.setFillColor(sf::Color(255,0,0,100));
+            gameWindow->draw(circle);
         }
     }
 
@@ -418,6 +447,8 @@ void ParticleSimulation::updateAndDraw()
     
     // Display the window
     gameWindow->display();
+
+    }
 }
 
 inline void ParticleSimulation::drawAimLine() 
@@ -480,8 +511,10 @@ void ParticleSimulation::updateForces()
                 if (quadTree.empty(leafNodes[j]))
                     continue;
 
-                for (Particle* particle : quadTree.getParticleVec(leafNodes[j])) {
-                    for (Particle* other : quadTree.getParticleVec(leafNodes[j])) {
+                const std::vector<Particle*>& leafNodeParticleVec = quadTree.getParticleVec(leafNodes[j]);
+                
+                for (Particle* particle : leafNodeParticleVec) {
+                    for (Particle* other : leafNodeParticleVec) {
 
                         if (other == particle)
                             continue;
@@ -515,6 +548,32 @@ void ParticleSimulation::updateForces()
                         }
                     }
                 }
+
+                //// Get the new direction vector globalCOM - localCOM for this node
+                //sf::Vector2f newCOM(0,0);
+
+                //int nonLocalParticles = (particles.size() - leafNodeParticleVec.size());
+
+                //if (nonLocalParticles == 0)
+                //    continue;
+
+                //newCOM.x = static_cast<float>(particles.size() * globalCOM.x - leafNodeParticleVec.size() * quadTree.getCOM(leafNodes[j]).x) /
+                //                static_cast<float>(particles.size() - leafNodeParticleVec.size());
+                //newCOM.y = static_cast<float>(particles.size() * globalCOM.y - leafNodeParticleVec.size() * quadTree.getCOM(leafNodes[j]).y) /
+                //                static_cast<float>(particles.size() - leafNodeParticleVec.size());
+
+                //newCOM = newCOM + globalCOM;
+                ////newCOM.x /= nonLocalParticles;
+                ////newCOM.y /= nonLocalParticles;
+
+                //for (Particle* particle : leafNodeParticleVec) {
+
+                //        const float distanceSquared = dot(particle->position - newCOM,
+                //                                      particle->position - newCOM);
+
+                //        particle->acceleration += (nonLocalParticles / distanceSquared) * BIG_G *
+                //                                        (newCOM - particle->position);
+                //}
             }
         };
 

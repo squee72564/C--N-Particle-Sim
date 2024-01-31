@@ -4,6 +4,7 @@
 #include "Simulation.hpp"
 #include "Particle.hpp"
 #include "QuadTree.hpp"
+#include "Profiler.hpp"
 #include <vector>
 #include <thread>
 #include <chrono>
@@ -33,6 +34,8 @@ private:
     std::random_device rd;
     std::mt19937 gen;
     std::uniform_int_distribution<> dis;
+
+    sf::Vector2f globalCOM;
 
     bool isRightButtonPressed;
     sf::Vector2f current_mousePosF;
