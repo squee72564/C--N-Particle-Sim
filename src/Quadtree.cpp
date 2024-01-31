@@ -1,6 +1,6 @@
 #include "QuadTree.hpp"
 
-inline QuadTree::Node createNode(const int m_level, const int w, const int h, const sf::Vector2f ori) {
+inline QuadTree::Node createNode(const int m_level, const float w, const float h, const sf::Vector2f ori) {
     QuadTree::Node ret;
     ret.m_level = m_level;
     ret.m_rect = sf::RectangleShape(sf::Vector2f(w,h));
@@ -57,8 +57,8 @@ void QuadTree::initTree()
             continue;
         }
 
-        const int w = std::floor(currentNode.m_rect.getSize().x/2);
-        const int h = std::floor(currentNode.m_rect.getSize().y/2);
+        const float w = currentNode.m_rect.getSize().x/2.0f;
+        const float h = currentNode.m_rect.getSize().y/2.0f;
         const sf::Vector2f currPos = currentNode.m_rect.getPosition();
 
         const sf::Vector2f childPositions[4]= {
