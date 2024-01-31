@@ -63,7 +63,7 @@ public:
   void insert(Particle* particle, int index);
   void split(const int);
   void deleteTree();
-  void getLeafNodes(std::vector<QuadTree::Node*>& vec);
+  sf::Vector2f getLeafNodes(std::vector<QuadTree::Node*>& vec, int n);
   bool contains(const QuadTree::Node*, const sf::Vector2f& pos);
   bool empty(const QuadTree::Node*);
   const std::vector<Particle*>& getParticleVec(const QuadTree::Node*);
