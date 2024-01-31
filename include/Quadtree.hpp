@@ -43,13 +43,15 @@ public:
   };
 
 private:
+  int w;
+  int h;
   int treeMaxDepth;
   unsigned int nodeCap;
   std::vector<QuadTree::Node> nodes;
 
 public:
   QuadTree();
-  QuadTree(const int maxDepth, const int capacity);
+  QuadTree(const int w, const int h, const int maxDepth, const int capacity);
   QuadTree(const QuadTree& other);
   QuadTree(QuadTree&& other) noexcept;
   QuadTree& operator=(const QuadTree& other);
