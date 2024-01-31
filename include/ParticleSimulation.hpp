@@ -46,6 +46,7 @@ private:
 
     bool showVelocity;
     bool showQuadTree;
+    bool showParticles;
 
     bool isPaused;
     
@@ -78,7 +79,6 @@ public:
     void updateAndDraw();
     inline void drawAimLine();
     inline void drawParticleVelocity(Particle& particle);
-    inline void attractParticleToMousePos(Particle& particle);
     void updateForces();
     void addParticleDiagonal(int tiles, int numParticles);
     void addParticleDiagonal2(int tiles, int particleNum);
