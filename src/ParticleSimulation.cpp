@@ -63,10 +63,11 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
 
     std::cout << "Alloc Quadtree strating...\n";
 
-    quadTree = QuadTree(treeDepth, nodeCap);
+    quadTree = QuadTree(windowWidth, windowHeight, treeDepth, nodeCap);
 
     std::cout << "Alloc Quadtree done...\n";
 
+    isPaused = true;
     isRightButtonPressed = false;
     isAiming = false;
     showQuadTree = true;
@@ -131,10 +132,11 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
 
     std::cout << "Alloc Quadtree starting...\n";
 
-    quadTree = QuadTree(treeDepth, nodeCap);
+    quadTree = QuadTree(windowWidth, windowHeight, treeDepth, nodeCap);
 
     std::cout << "Alloc Quadtree done...\n";
 
+    isPaused = true;
     isRightButtonPressed = false;
     isAiming = false;
     showQuadTree = true;
@@ -169,11 +171,11 @@ void ParticleSimulation::run()
     iterationCount = 0;
     totalTime = 0.0;
     
-    addParticleDiagonal(5, 2000);
-    addParticleDiagonal(3, 2000);
+    addParticleDiagonal(5, 5000);
+    addParticleDiagonal(3, 5000);
 
-    addParticleDiagonal2(5, 2000);
-    addParticleDiagonal2(3, 2000);
+    addParticleDiagonal2(5, 5000);
+    addParticleDiagonal2(3, 5000);
     
     // Run the program as long as the window is open
     while (gameWindow->isOpen())
@@ -235,7 +237,7 @@ void ParticleSimulation::pollUserEvent()
                     final_mousePosF = getMousePosition(*gameWindow);
                     particles.emplace_back(Particle(initial_mousePosF, (initial_mousePosF-final_mousePosF), particleMass, gen , dis));
                 }
-
+ 
                 break;
 
             case sf::Event::MouseButtonPressed:	// RMB or LMB pressed
@@ -294,15 +296,17 @@ void ParticleSimulation::updateAndDraw()
             std::swap(particles[i], particles.back());
             particles.pop_back();
             --i;
-        } else {
-            // Insert valid particle into QuadTree
-            quadTree.insert(&particles[i], 0);
         }
+    }
+
+    for (std::size_t i = 0; i < particles.size(); ++i)
+    {
+        // Insert valid particle into QuadTree
+        quadTree.insert(&particles[i], 0);
     }
 
     // Traverse quadtree to get the leaf nodes
     quadTree.getLeafNodes(leafNodes);
-
 
     if (!isPaused && !particles.empty()) {
         
@@ -371,13 +375,13 @@ void ParticleSimulation::updateAndDraw()
     }
     
     if (!particles.empty()) {
+
+        sf::VertexArray points(sf::Points, particles.size());
+
         for (std::size_t i = 0; i < particles.size(); i++)
         {
-            // Set particle circle shape to new position
-            particles[i].shape.setPosition(particles[i].position);
-
-            // Draw the particle's shape
-            gameWindow->draw(particles[i].shape);
+            points[i].position = particles[i].position;
+            points[i].color = particles[i].shape.getFillColor();
 
             // Create visual for particle's velocity vector if toggled
             if (showVelocity)
@@ -385,6 +389,8 @@ void ParticleSimulation::updateAndDraw()
                 drawParticleVelocity(particles[i]);
             }
         }
+
+        gameWindow->draw(points);
 
         if (isAiming) {
             drawAimLine();
