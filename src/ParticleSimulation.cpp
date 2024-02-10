@@ -1,6 +1,9 @@
 #include "ParticleSimulation.hpp"
 #include <iostream>
 
+//static const float REFLECTION_FACTOR = 0.010f;
+static const float BIG_G = 33.33f;
+
 static sf::Vector2f getMousePosition(const sf::RenderWindow &window)
 {
     // Get mouse position and convert to global coords 
@@ -99,7 +102,7 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
 
     timeStep = dt;
     gravity = g;
-    particleMass = 1.0f;
+    particleMass = 1.00f;
     gen = std::mt19937(rd());
     dis = std::uniform_int_distribution<>(0, 255);
 
@@ -173,11 +176,9 @@ void ParticleSimulation::run()
     iterationCount = 0;
     totalTime = 0.0;
     
-    addParticleDiagonal(6, 50000);
-    addParticleDiagonal(5, 50500);
+    addParticleDiagonal(24, 15000);
 
-    addParticleDiagonal2(6, 50000);
-    addParticleDiagonal2(5, 50500);
+    addParticleDiagonal2(24, 15000);
     
     // Run the program as long as the window is open
     while (gameWindow->isOpen())
@@ -242,7 +243,7 @@ void ParticleSimulation::pollUserEvent()
                 {
                     isAiming = false;
                     final_mousePosF = getMousePosition(*gameWindow);
-                    particles.emplace_back(Particle(initial_mousePosF, (initial_mousePosF-final_mousePosF), particleMass, gen , dis));
+                    particles.emplace_back(Particle(initial_mousePosF, (initial_mousePosF-final_mousePosF), particleMass, -1));
                 }
  
                 break;
@@ -268,7 +269,7 @@ void ParticleSimulation::pollUserEvent()
                 current_mousePosF = getMousePosition(*gameWindow);
 
                 // Add a new particle with 0 velocity
-                particles.emplace_back(Particle(current_mousePosF, sf::Vector2f(0,0), particleMass, gen , dis));
+                particles.emplace_back(Particle(current_mousePosF, sf::Vector2f(0,0), particleMass, -1));
                 break;
 
             default:
@@ -311,6 +312,7 @@ void ParticleSimulation::updateAndDraw()
             particles.pop_back();
             --i;
         }
+        particles[i].index = i;
     }
     }
 
@@ -325,13 +327,14 @@ void ParticleSimulation::updateAndDraw()
     }
 
     // Traverse quadtree to get the leaf nodes
-    globalCOM = quadTree.getLeafNodes(leafNodes, particles.size());
+    globalCOM = quadTree.getLeafNodes(leafNodes);
 
+    sf::VertexArray points(sf::Points, particles.size());
     if (!isPaused && !particles.empty()) {
         {
         API_PROFILER(UpdateForces);
         // This updates collision/gravity locally for each leaf node
-        updateForces();
+        updateForces(points);
         }
     }
     
@@ -340,17 +343,6 @@ void ParticleSimulation::updateAndDraw()
 
         {
         API_PROFILER(DrawParticles);
-        sf::VertexArray points(sf::Points, particles.size());
-
-        for (std::size_t i = 0; i < particles.size(); i++) {
-            points[i].position = particles[i].position;
-            points[i].color = particles[i].shape.getFillColor();
-
-            // Create visual for particle's velocity vector if toggled
-            if (showVelocity) {
-                drawParticleVelocity(particles[i]);
-            }
-        }
 
         gameWindow->draw(points);
         }
@@ -366,7 +358,6 @@ void ParticleSimulation::updateAndDraw()
         }
 
         }
-
 
     }
 
@@ -438,25 +429,25 @@ inline void ParticleSimulation::drawParticleVelocity(Particle& particle)
 
 static inline void attractParticleToMousePos(Particle& particle, sf::Vector2f& current_mousePosF) 
 {
-    //particle.velocity -= sf::Vector2f(0.35f * (particle.position.x - current_mousePosF.x),
-    //                            0.35f * (particle.position.y - current_mousePosF.y));
+    particle.velocity -= sf::Vector2f(0.35f * (particle.position.x - current_mousePosF.x),
+                                0.35f * (particle.position.y - current_mousePosF.y));
 
     //This provides a much softer attraction with RMB
-    particle.acceleration -= sf::Vector2f(75.0f * (particle.position.x - current_mousePosF.x),
-                                75.0f * (particle.position.y - current_mousePosF.y));
+    //particle.acceleration -= sf::Vector2f(75.0f * (particle.position.x - current_mousePosF.x),
+    //                            75.0f * (particle.position.y - current_mousePosF.y));
 }
 
 static inline void attractParticleToMousePos(Particle* particle, sf::Vector2f& current_mousePosF) 
 {
-    //particle.velocity -= sf::Vector2f(0.35f * (particle.position.x - current_mousePosF.x),
-    //                            0.35f * (particle.position.y - current_mousePosF.y));
+    particle->velocity -= sf::Vector2f(0.35f * (particle->position.x - current_mousePosF.x),
+                                0.35f * (particle->position.y - current_mousePosF.y));
 
     //This provides a much softer attraction with RMB
-    particle->acceleration -= sf::Vector2f(75.0f * (particle->position.x - current_mousePosF.x),
-                                75.0f * (particle->position.y - current_mousePosF.y));
+    //particle->acceleration -= sf::Vector2f(75.0f * (particle->position.x - current_mousePosF.x),
+    //                            75.0f * (particle->position.y - current_mousePosF.y));
 }
 
-void ParticleSimulation::updateForces()
+void ParticleSimulation::updateForces(sf::VertexArray& points)
 {
     //std::cout << "Updating forces for " << leafNodes.size() << " leaf nodes.\n";
 
@@ -494,7 +485,7 @@ void ParticleSimulation::updateForces()
                         const float distanceSquared = dot(particle->position - other->position,
                                                     particle->position - other->position);
 
-                        if (distanceSquared == 0)
+                        if (distanceSquared == 0 || distanceSquared < 0.01f)
                             continue;
 
                         const float radiusSquared = (particle->radius + other->radius) *
@@ -509,7 +500,7 @@ void ParticleSimulation::updateForces()
                             const float a1 = dot(particle->velocity, rHat);
                             const float a2 = dot(other->velocity, rHat);
                         
-                            const float p = 2.0f * particle->mass * other->mass * (a1-a2)/(particle->mass + other->mass);
+                            const float p = 1.9995f * particle->mass * other->mass * (a1-a2)/(particle->mass + other->mass);
                             
                             particle->velocity -= p/particle->mass * (rHat);
                             other->velocity += p/other->mass * (rHat);
@@ -540,7 +531,9 @@ void ParticleSimulation::updateForces()
         const std::size_t endIdx = (i==numThreads-1) ? startIdx + chunkSize + remainder : startIdx + chunkSize;
         
         // Create a lambda function that will be executed by each thread
-        auto threadFunc = [this, startIdx, endIdx]() {
+        auto threadFunc = [this, startIdx, endIdx, &points]() {
+            sf::Color c;
+
             for (std::size_t j = startIdx; j < endIdx; j++) {
 
                 const std::vector<Particle*>& leafNodeParticleVec = quadTree.getParticleVec(leafNodes[j]);
@@ -575,6 +568,26 @@ void ParticleSimulation::updateForces()
 
                     particle->velocity += particle->acceleration * timeStep;
                     particle->position += particle->velocity * timeStep;
+                    
+                    // set vertex array element for particle
+                    points[particle->index].position = particle->position;
+
+                    float vel = std::sqrt(particle->velocity.x * particle->velocity.x +
+                                particle->velocity.y * particle->velocity.y);
+
+                    float maxVel = 1500.0f;
+
+                    if (vel > maxVel) vel = maxVel;
+                    
+                    float p = vel / maxVel;
+
+                    c.r = 255;
+                    c.g = static_cast<uint8_t>(255.0f * (1.0f-p));
+                    c.b = static_cast<uint8_t>(255.0f * (1.0f-p));
+                    c.a = static_cast<uint8_t>(125.0f + (130.0f * p));
+
+                    points[particle->index].color = c;
+
                     particle->acceleration.x = 0.0f;
                     particle->acceleration.y = 0.0f;
                 }
@@ -607,7 +620,7 @@ void ParticleSimulation::addParticleDiagonal(int tiles, int particleNum)
             for (int k = 0; k < row; k++ ) {
                 const float x = (j * smallWidth / col) + smallWidth * i;
                 const float y = (k * smallHeight / row) + smallHeight * i;
-                particles.emplace_back(Particle(sf::Vector2f(x,y), sf::Vector2f(0,0), 1, gen , dis));
+                particles.emplace_back(Particle(sf::Vector2f(x,y), sf::Vector2f(0,0), particleMass, -1));
             }
         }
     }
@@ -627,7 +640,7 @@ void ParticleSimulation::addParticleDiagonal2(int tiles, int particleNum)
                 const float x = static_cast<float>(windowWidth) - ((j * smallWidth / col) + smallWidth * i);
                 const float y = (k * smallHeight / row) + smallHeight * i;
 
-                particles.emplace_back(Particle(sf::Vector2f(x, y), sf::Vector2f(0, 0), 1, gen, dis));
+                particles.emplace_back(Particle(sf::Vector2f(x, y), sf::Vector2f(0, 0), particleMass, -1));
             }
         }
     }
