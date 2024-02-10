@@ -3,37 +3,61 @@
 Particle::Particle()
     : position(sf::Vector2f(0,0)),
       velocity(sf::Vector2f(0,0)),
-      mass(1)
-{
-    radius = 1;
-    shape.setRadius(radius); // Set the radius of the circle to the mass of the particle
-    shape.setOrigin(shape.getRadius()/2, shape.getRadius()/2);
-    shape.setFillColor(sf::Color(255, 255, 255)); //white
-    acceleration = sf::Vector2f(0,0);
-}
+      acceleration(sf::Vector2f(0,0)),
+      mass(1),
+      radius(0.5),
+      index(-1) {}
 
-Particle::Particle(const sf::Vector2f pos, const sf::Vector2f vel, float m, std::mt19937& gen, std::uniform_int_distribution<>& dis)
+Particle::Particle(const sf::Vector2f& pos, const sf::Vector2f& vel, float m, int index)
     : position(pos),
       velocity(vel),
-      mass(m)
-{
-    radius = m;
-    shape.setRadius(radius); // Set the radius of the circle to the mass of the particle
-    shape.setOrigin(shape.getRadius()/2, shape.getRadius()/2);
-    shape.setFillColor(sf::Color(dis(gen), dis(gen), dis(gen))); //multicolored
-    acceleration = sf::Vector2f(0,0);
-}
+      acceleration(sf::Vector2f(0,0)),
+      mass(m),
+      radius(0.5),
+      index(index) {}
 
 Particle::Particle(const Particle& particle)
     : position(particle.position),
       velocity(particle.velocity),
-      mass(particle.mass)
+      acceleration(particle.acceleration),
+      mass(particle.mass),
+      radius(particle.radius),
+      index(particle.index) {}
+
+Particle::Particle(Particle&& particle)
+    : position(std::move(particle.position)),
+      velocity(std::move(particle.velocity)),
+      acceleration(std::move(particle.acceleration)),
+      mass(particle.mass),
+      radius(particle.radius),
+      index(particle.index) {}
+
+Particle& Particle::operator=(const Particle& particle)
 {
-    radius = mass;
-    shape.setRadius(radius); // Set the radius of the circle to the mass of the particle
-    shape.setFillColor(particle.shape.getFillColor()); //multicolored
-    shape.setOrigin(mass, mass); // Set the origin of the circle to its center
-    acceleration = particle.acceleration;
+    if (this != &particle) {
+        position = particle.position;
+        velocity = particle.velocity;
+        acceleration = particle.acceleration;
+        mass = particle.mass;
+        radius = particle.radius;
+        index = particle.index;
+    }
+    
+    return *this;
+}
+
+Particle& Particle::operator=(Particle&& particle)
+{
+    if (this != &particle) {
+        position = std::move(particle.position);
+        velocity = std::move(particle.velocity);
+        acceleration = std::move(particle.acceleration);
+        mass = particle.mass;
+        radius = particle.radius;
+        index = particle.index;
+    }
+    
+    return *this;
 }
 
 Particle::~Particle() {}
