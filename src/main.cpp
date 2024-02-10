@@ -18,7 +18,7 @@ int main()
     window.setFramerateLimit(60); // Limit the frame rate to 60 FPS
 
     //Start Particle Simulation
-    ParticleSimulation particleSimulation(TIME_STEP, grav, window, 10, 8, 128);
+    ParticleSimulation particleSimulation(TIME_STEP, grav, window, 8, 7, 128);
     std::cout << "Starting particle sim...\n";
     particleSimulation.run();
     std::cout << "Particle sim ended\n";
