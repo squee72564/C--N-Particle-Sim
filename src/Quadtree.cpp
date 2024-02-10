@@ -275,10 +275,11 @@ void QuadTree::deleteTree()
     }
 }
 
-sf::Vector2f QuadTree::getLeafNodes(std::vector<QuadTree::Node*>& vec, int n)
+sf::Vector2f QuadTree::getLeafNodes(std::vector<QuadTree::Node*>& vec)
 {
     std::stack<int> stack;
     sf::Vector2f globalCOM(0,0);
+    float _totalMass = 0;
 
     // Start with root
     stack.push(0);
@@ -294,7 +295,11 @@ sf::Vector2f QuadTree::getLeafNodes(std::vector<QuadTree::Node*>& vec, int n)
             }
             //std::cout << "Pushing back idx " << currIdx << "\n";
             vec.push_back(currentNode);
-            globalCOM += currentNode->com;
+            //globalCOM += currentNode->com;
+
+            globalCOM.x += currentNode->com.x;
+            globalCOM.y += currentNode->com.y;
+            _totalMass += currentNode->totalMass;
         } else {
             for (int i = 1; i <= 4; i++) {
                 const int child_idx = 4 * currIdx + i;
@@ -302,9 +307,16 @@ sf::Vector2f QuadTree::getLeafNodes(std::vector<QuadTree::Node*>& vec, int n)
             }
         }
     }
-
-    globalCOM.x /= n;
-    globalCOM.y /= n;
+    
+    if (_totalMass > 0.00001f) {
+        globalCOM.x /= _totalMass;
+        globalCOM.y /= _totalMass;
+    } else {
+        globalCOM.x = 0.0f;
+        globalCOM.y = 0.0f;
+    }
+    //globalCOM.x /= n;
+    //globalCOM.y /= n;
 
     return globalCOM;
 }

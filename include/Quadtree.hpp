@@ -36,7 +36,7 @@ public:
     bool isLeaf;
 
     sf::Vector2f com;
-    int totalMass;
+    float totalMass;
 
     std::vector<Particle*> m_index;
 
@@ -63,7 +63,7 @@ public:
   void insert(Particle* particle, int index);
   void split(const int);
   void deleteTree();
-  sf::Vector2f getLeafNodes(std::vector<QuadTree::Node*>& vec, int n);
+  sf::Vector2f getLeafNodes(std::vector<QuadTree::Node*>& vec);
   bool contains(const QuadTree::Node*, const sf::Vector2f& pos);
   bool empty(const QuadTree::Node*);
   const std::vector<Particle*>& getParticleVec(const QuadTree::Node*);
