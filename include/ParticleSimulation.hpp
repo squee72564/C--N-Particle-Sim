@@ -78,7 +78,7 @@ public:
     void pollUserEvent();
     void updateAndDraw();
     inline void drawAimLine();
-    inline void drawParticleVelocity(Particle& particle);
+    inline void drawParticleVelocity();
     void updateForces(sf::VertexArray& points);
     void addParticleDiagonal(int tiles, int numParticles);
     void addParticleDiagonal2(int tiles, int particleNum);

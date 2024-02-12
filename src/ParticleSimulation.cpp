@@ -330,12 +330,37 @@ void ParticleSimulation::updateAndDraw()
     globalCOM = quadTree.getLeafNodes(leafNodes);
 
     sf::VertexArray points(sf::Points, particles.size());
-    if (!isPaused && !particles.empty()) {
+    if (!isPaused) {
         {
         API_PROFILER(UpdateForces);
         // This updates collision/gravity locally for each leaf node
-        updateForces(points);
+        if (!particles.empty())
+            updateForces(points);
         }
+    } else {
+
+        sf::Color c;
+
+        for (std::size_t i = 0; i < particles.size(); ++i) {
+            points[i].position = particles[i].position;
+
+            float vel = std::sqrt(particles[i].velocity.x * particles[i].velocity.x +
+                        particles[i].velocity.y * particles[i].velocity.y);
+
+            float maxVel = 1500.0f;
+
+            if (vel > maxVel) vel = maxVel;
+            
+            float p = vel / maxVel;
+
+            c.r = 255;
+            c.g = static_cast<uint8_t>(255.0f * (1.0f-p));
+            c.b = static_cast<uint8_t>(255.0f * (1.0f-p));
+            c.a = static_cast<uint8_t>(125.0f + (130.0f * p));
+
+            points[i].color = c;
+        }
+
     }
     
 
@@ -350,11 +375,9 @@ void ParticleSimulation::updateAndDraw()
         {
         API_PROFILER(DrawVelocities);
 
-        for (std::size_t i = 0; i < particles.size(); i++) {
-            // Create visual for particle's velocity vector if toggled
-            if (showVelocity) {
-                drawParticleVelocity(particles[i]);
-            }
+        // Create visual for particle's velocity vector if toggled
+        if (showVelocity) {
+            drawParticleVelocity();
         }
 
         }
@@ -413,18 +436,26 @@ inline void ParticleSimulation::drawAimLine()
     gameWindow->draw(line);
 }
 
-inline void ParticleSimulation::drawParticleVelocity(Particle& particle) 
+inline void ParticleSimulation::drawParticleVelocity() 
 {
     // Create VertexArray from particle position to velocity vector of particle
-    sf::VertexArray line(sf::Lines, 2);
-    line[1].position.x = (particle.position.x + particle.velocity.x/200);
-    line[1].position.y = (particle.position.y + particle.velocity.y/200);
-    line[0].position = particle.position;
-    line[0].color  = sf::Color(0,0,255,85);
-    line[1].color = sf::Color(255,0,0,0);
+    sf::VertexArray lines(sf::Lines, particles.size()*2);
+    
+    int pIdx = 0;
+    for (std::size_t i = 0; i < particles.size()*2; i+=2) {
+        
+        lines[i+1].position.x = (particles[pIdx].position.x + particles[pIdx].velocity.x/100);
+        lines[i+1].position.y = (particles[pIdx].position.y + particles[pIdx].velocity.y/100);
+        lines[i].position = particles[pIdx].position;
+        lines[i].color  = sf::Color(0,0,255,85);
+        lines[i+1].color = sf::Color(255,0,0,0);
+
+        pIdx++;
+
+    }
    
     // Draw the velocity vector
-    gameWindow->draw(line);
+    gameWindow->draw(lines);
 }
 
 static inline void attractParticleToMousePos(Particle& particle, sf::Vector2f& current_mousePosF) 
