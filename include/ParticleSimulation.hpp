@@ -1,7 +1,6 @@
 #ifndef PARTICLE_SIMULATION
 #define PARTICLE_SIMULATION
 
-#include "Simulation.hpp"
 #include "Particle.hpp"
 #include "QuadTree.hpp"
 #include "Profiler.hpp"
