@@ -169,20 +169,16 @@ struct N {
 
 void QuadTree::display(sf::RenderWindow* gameWindow)
 {
-    sf::VertexArray lines(sf::Lines); // this is how many vertexes we need for all grids
-    sf::Color c(0,255,0,30);
+    const int n = (nodes[0].isLeaf) ? 8 : (std::pow(4,treeMaxDepth));
+    sf::VertexArray lines(sf::Lines, n); // this is how many vertexes we need for all grids
+    long vi = 0;
+
     sf::Color colors[4] = {
         sf::Color(0,0,204,30),
         sf::Color(102,0,204,30),
         sf::Color(0,102,204,30),
         sf::Color(255,0,127,30),
     };
-    //sf::Color colors[4] = {
-    //    sf::Color(0,204,204,30),
-    //    sf::Color(204,0,204,30),
-    //    sf::Color(0,128,255,30),
-    //    sf::Color(127,0,255,30),
-    //};
 
     std::pair<int, N> array[(treeMaxDepth * 4) + 1]; // <idx, depth>
 
@@ -206,17 +202,16 @@ void QuadTree::display(sf::RenderWindow* gameWindow)
 
         if (currentNode.isLeaf) {
 
-            sf::Vector2f offsets[4] = {
+            const sf::Vector2f positions[4] = {
                 currP,
                 sf::Vector2f(currP.x + currS.x, currP.y),
                 sf::Vector2f(currP.x + currS.x, currP.y + currS.y),
-                sf::Vector2f(currP.x ,currP.y + currS.y),
+                sf::Vector2f(currP.x, currP.y + currS.y),
             };
-
             
-            for (int i = 0; i < 4; i++) {
-                lines.append(sf::Vertex(offsets[i],colors[i]));
-                lines.append(sf::Vertex(offsets[(i+1)%4],colors[(i+1)%4]));
+            for (int i = 0; i < 4; ++i) {
+                lines[vi++] = sf::Vertex(positions[i],colors[i]);
+                lines[vi++] = sf::Vertex(positions[(i+1)%4],colors[(i+1)%4]);
             }
 
         } else {
@@ -229,7 +224,7 @@ void QuadTree::display(sf::RenderWindow* gameWindow)
                 sf::Vector2f(currP.x + cSize.x, currP.y + cSize.y), 
             };
 
-            for (int i = 1; i <= 4; i++) {
+            for (int i = 1; i <= 4; ++i) {
                 const int child_idx = 4 * currIdx + i;
                 const N child = {currDepth+1, offsets[i-1], cSize};
                 array[top++] = std::make_pair(child_idx, child);

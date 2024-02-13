@@ -15,16 +15,6 @@
 
 #include "Particle.hpp"
 
-/**TODO
- * Change this class into a 1d array structure for the quadtree with size
- * depending on the depth. This will be much more cache friendly than allocating
- * the new nodes on the heap
- *
- * Also the mutex is no longer being used, so we can either use it to synchronize
- * multiple threads inserting into the tree, or get rid of it alltogether
- */
-
-
 class QuadTree {
 
 public:
@@ -39,7 +29,6 @@ public:
     float totalMass;
 
     std::vector<Particle*> m_index;
-
   };
 
 private:
