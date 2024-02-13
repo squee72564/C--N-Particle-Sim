@@ -22,6 +22,9 @@ OUTPUT = main
 # Makefile targets
 all: $(OUTPUT)
 
+run: $(OUTPUT)
+	./$(OUTPUT) 10 8 64
+
 $(OUTPUT): $(SOURCES)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDES) $(LIB_DIRS) $(LIBS)
 
