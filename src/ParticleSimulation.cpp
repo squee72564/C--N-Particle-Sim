@@ -2,7 +2,7 @@
 #include <iostream>
 
 //static const float REFLECTION_FACTOR = 0.010f;
-static const float BIG_G = 45.00f;
+static const float BIG_G = 35.00f;
 
 static sf::Vector2f getMousePosition(const sf::RenderWindow &window)
 {
@@ -29,6 +29,7 @@ ParticleSimulation::ParticleSimulation(sf::RenderWindow &window,
                                        int treeDepth,
                                        int nodeCap)
   : numThreads(numThreads),
+    treeMaxDepth(treeDepth),
     windowWidth(window.getSize().x),
     windowHeight(window.getSize().y),
     gameView(sf::Vector2f(windowWidth/2, windowHeight/2), sf::Vector2f(windowWidth, windowHeight)),
@@ -59,8 +60,8 @@ ParticleSimulation::ParticleSimulation(sf::RenderWindow &window,
     font.loadFromFile("fonts/corbel.TTF");
 
     threads.reserve(numThreads);
-    leafNodes.reserve(pow(4,treeDepth));
-    particles.reserve(5000);
+    leafNodes.reserve(pow(4,treeDepth)+1);
+    particles.reserve(100000);
 
     particleCountText.setFont(font);
     particleCountText.setCharacterSize(24);
@@ -102,12 +103,12 @@ ParticleSimulation::~ParticleSimulation()
 
 void ParticleSimulation::run()
 {
-    //addParticleDiagonal(12, 30000);
-    //addParticleDiagonal2(12, 30000);
+    addParticleDiagonal(12, 30000);
+    addParticleDiagonal2(12, 30000);
     
     //addCheckeredParticleChunk();
 
-    addSierpinskiTriangleParticleChunk((windowWidth-windowHeight)/2, 0, windowHeight, 10);
+    //addSierpinskiTriangleParticleChunk((windowWidth-windowHeight)/2, 0, windowHeight, 11);
     
     while (gameWindow->isOpen())
     {
@@ -120,6 +121,8 @@ void ParticleSimulation::pollUserEvent()
 {
     while (gameWindow->pollEvent(event))
     {
+        int scrollDelta = 0;
+
         switch (event.type)
         {
             case sf::Event::Closed:
@@ -129,10 +132,12 @@ void ParticleSimulation::pollUserEvent()
             case sf::Event::KeyPressed:
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z))
                 {
+                    if (quadTree.getMaxDepth() > 0) quadTree.setMaxDepth(quadTree.getMaxDepth()-1);
                 }
 
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::X))
                 {
+                    if (quadTree.getMaxDepth() < treeMaxDepth) quadTree.setMaxDepth(quadTree.getMaxDepth()+1);
                 }
 
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num1))
@@ -155,7 +160,6 @@ void ParticleSimulation::pollUserEvent()
                     isPaused = (isPaused) ? false : true;
                 }
 
-
                 break;
 
             case sf::Event::MouseButtonReleased: // RMB or LMB released
@@ -176,7 +180,6 @@ void ParticleSimulation::pollUserEvent()
                 {
                     isMiddleButtonPressed = false;
                 }
-
  
                 break;
 
@@ -204,21 +207,27 @@ void ParticleSimulation::pollUserEvent()
             
             case sf::Event::MouseWheelScrolled:	// Scroll in
 
+                scrollDelta = event.mouseWheelScroll.delta;
+
+                if (scrollDelta < 0) gameView.move((getMousePosition(*gameWindow) - gameView.getCenter()) * 0.13f);
+
                 gameView.zoom(1 + (event.mouseWheelScroll.delta*0.05f));
                 gameWindow->setView(gameView);
+
                 break;
             
             default:
                 break;
         }
-
     }
 }
+
+#define P_RADIUS_DIV_2 (0.5f / 2.0f)
+#define TRI_X_OFFSET ((0.5f * std::sqrt(3.0f) / 2.0f)) 
 
 DEFINE_API_PROFILER(PopAndSwap);
 DEFINE_API_PROFILER(InsertIntoQuadTree);
 DEFINE_API_PROFILER(UpdateForces);
-DEFINE_API_PROFILER(UpdateForces2);
 DEFINE_API_PROFILER(DrawParticles);
 DEFINE_API_PROFILER(DrawVelocities);
 DEFINE_API_PROFILER(DrawQuadTree);
@@ -236,7 +245,7 @@ void ParticleSimulation::updateAndDraw()
     }
 
     if (isMiddleButtonPressed) {
-        gameView.move((scroll_mousePosF - getMousePosition(*gameWindow)) * 0.13f);
+        gameView.move((scroll_mousePosF - getMousePosition(*gameWindow)) * 0.07f);
         gameWindow->setView(gameView);
     }
 
@@ -255,6 +264,8 @@ void ParticleSimulation::updateAndDraw()
         }
     }
 
+    globalCOM.x = 0;
+    globalCOM.y = 0;
 
     {
         API_PROFILER(InsertIntoQuadTree);
@@ -262,8 +273,9 @@ void ParticleSimulation::updateAndDraw()
             quadTree.insert(&particles[i], 0);
         }
     }
-
-    globalCOM = quadTree.getLeafNodes(leafNodes);
+    
+    int totalLeafNodes = 0;
+    globalCOM = quadTree.getLeafNodes(leafNodes, totalLeafNodes);
 
     sf::VertexArray points(sf::Points, particles.size());
 
@@ -290,9 +302,9 @@ void ParticleSimulation::updateAndDraw()
             
             float p = vel / maxVel;
 
-            c.r = 255;
-            c.g = static_cast<uint8_t>(0);
-            c.b = static_cast<uint8_t>(255.0f * (1.0f-p));
+            c.r = static_cast<uint8_t>(15 + (240.0f * p));
+            c.g = static_cast<uint8_t>(0.0f);
+            c.b = static_cast<uint8_t>(240.0f * (1.0f-p));
             c.a = static_cast<uint8_t>(30.0f + (225.0f * p));
 
             points[i].color = c;
@@ -305,7 +317,45 @@ void ParticleSimulation::updateAndDraw()
 
         {
             API_PROFILER(DrawParticles);
-            gameWindow->draw(points);
+            
+            //sf::CircleShape c(0.5f, 30);
+            //c.setOrigin(c.getRadius(), c.getRadius());
+
+            sf::VertexArray particleVertices(sf::Triangles, particles.size() * 3);
+            int vi = 0;
+
+            for (std::size_t i = 0; i < particles.size(); ++i) {
+                //c.setPosition(points[i].position);
+                //c.setFillColor(points[i].color);
+
+                const float center_x = points[i].position.x;
+                const float center_y = points[i].position.y;
+                const float y_pos = center_y - P_RADIUS_DIV_2;
+
+                // Right now to lower time for drawing function we are only drawing a triangle
+                // where the particle circle would be inscribed within the triangle. This will lead total
+                // some visual overlap close to the triangle vertices when particles are not actually overlapping,
+                // but allows us to use a vertex array of triangles with only 3 vertices per particle for a batch render
+                
+                // Top vertex
+                particleVertices[vi].position.x = center_x;
+                particleVertices[vi].position.y = center_y + 0.5f;
+                particleVertices[vi++].color = points[i].color;
+
+                // Left vertex
+                particleVertices[vi].position.x = center_x - TRI_X_OFFSET;
+                particleVertices[vi].position.y = y_pos;
+                particleVertices[vi++].color = points[i].color;
+
+                // Right vertex
+                particleVertices[vi].position.x = center_x + TRI_X_OFFSET;
+                particleVertices[vi].position.y = y_pos;
+                particleVertices[vi++].color = points[i].color;
+               
+                //gameWindow->draw(c);
+            }
+
+            gameWindow->draw(particleVertices);
         }
 
         if (showVelocity) {
@@ -321,12 +371,15 @@ void ParticleSimulation::updateAndDraw()
 
     if (showQuadTree) {
         API_PROFILER(DrawQuadTree);
-        quadTree.display(gameWindow);
-        sf::CircleShape circle(20.0f);
-        circle.setOrigin(circle.getRadius(), circle.getRadius());
-        circle.setPosition(globalCOM);
-        circle.setFillColor(sf::Color(255,0,0,30));
-        gameWindow->draw(circle);
+        quadTree.display(gameWindow, totalLeafNodes);
+
+        if (leafNodes.size() != 0) {
+            sf::CircleShape circle(20.0f);
+            circle.setOrigin(circle.getRadius(), circle.getRadius());
+            circle.setPosition(globalCOM);
+            circle.setFillColor(sf::Color(255,0,0,20));
+            gameWindow->draw(circle);
+        }
     }
 
     particleCountText.setString("Particle count: " + std::to_string(particles.size()));
@@ -344,9 +397,9 @@ void ParticleSimulation::updateAndDraw()
 
 inline void ParticleSimulation::drawAimLine() 
 {	
-    velocityText.setPosition(initial_mousePosF.x+5, initial_mousePosF.y);
+    velocityText.setPosition(initial_mousePosF.x+5.0f, initial_mousePosF.y);
     float angle =  (initial_mousePosF.y - current_mousePosF.y) / (initial_mousePosF.x - current_mousePosF.x);
-    velocityText.setString(std::to_string( abs( ( atan(angle) * 180 ) / 3.14) ));
+    velocityText.setString(std::to_string( abs( ( atan(angle) * 180.0f ) / 3.14159f) ));
 
     sf::VertexArray line(sf::Lines, 2);
     line[0].position = initial_mousePosF;
@@ -383,9 +436,8 @@ static inline void attractParticleToMousePos(Particle& particle, sf::Vector2f& c
     particle.velocity -= sf::Vector2f(0.35f * (particle.position.x - current_mousePosF.x),
                                 0.35f * (particle.position.y - current_mousePosF.y));
 
-    //This provides a much softer attraction with RMB
-    //particle.acceleration -= sf::Vector2f(75.0f * (particle.position.x - current_mousePosF.x),
-    //                            75.0f * (particle.position.y - current_mousePosF.y));
+    //particle.acceleration -= sf::Vector2f(150.0f * (particle.position.x - current_mousePosF.x),
+    //                            150.0f * (particle.position.y - current_mousePosF.y));
 }
 
 static inline void attractParticleToMousePos(Particle* particle, sf::Vector2f& current_mousePosF) 
@@ -393,9 +445,8 @@ static inline void attractParticleToMousePos(Particle* particle, sf::Vector2f& c
     particle->velocity -= sf::Vector2f(0.35f * (particle->position.x - current_mousePosF.x),
                                 0.35f * (particle->position.y - current_mousePosF.y));
 
-    //This provides a much softer attraction with RMB
-    //particle->acceleration -= sf::Vector2f(75.0f * (particle->position.x - current_mousePosF.x),
-    //                            75.0f * (particle->position.y - current_mousePosF.y));
+    //particle->acceleration -= sf::Vector2f(150.0f * (particle->position.x - current_mousePosF.x),
+    //                            150.0f * (particle->position.y - current_mousePosF.y));
 }
 
 void ParticleSimulation::updateForces(sf::VertexArray& points)
@@ -431,11 +482,13 @@ void ParticleSimulation::updateForces(sf::VertexArray& points)
                         const float distanceSquared = dot(particle->position - other->position,
                                                     particle->position - other->position);
 
-                        if (distanceSquared == 0 || distanceSquared < 0.05f)
+                        if (distanceSquared < 0.01f)
                             continue;
 
-                        const float radiusSquared = (particle->radius + other->radius) *
-                                              (particle->radius + other->radius);
+                        
+                        const float radiusSquared = 1;
+                        //const float radiusSquared = (particle->radius + other->radius) *
+                        //                      (particle->radius + other->radius);
 
                         const bool is_colliding = (distanceSquared <= radiusSquared);
                         
@@ -524,9 +577,9 @@ void ParticleSimulation::updateForces(sf::VertexArray& points)
                     
                     float p = vel / maxVel;
 
-                    c.r = 255;
+                    c.r = static_cast<uint8_t>(15 + (240.0f * p));
                     c.g = static_cast<uint8_t>(0.0f);
-                    c.b = static_cast<uint8_t>(255.0f * (1.0f-p));
+                    c.b = static_cast<uint8_t>(240.0f * (1.0f-p));
                     c.a = static_cast<uint8_t>(30.0f + (225.0f * p));
 
                     points[particle->index].color = c;
@@ -697,9 +750,9 @@ void ParticleSimulation::updateForcesLoadBalanced(sf::VertexArray& points) {
                     
                     float p = vel / maxVel;
 
-                    c.r = 255;
+                    c.r = static_cast<uint8_t>(15 + (240.0f * p));
                     c.g = static_cast<uint8_t>(0.0f);
-                    c.b = static_cast<uint8_t>(255.0f * (1.0f-p));
+                    c.b = static_cast<uint8_t>(240.0f * (1.0f-p));
                     c.a = static_cast<uint8_t>(30.0f + (225.0f * p));
 
                     points[particle->index].color = c;
