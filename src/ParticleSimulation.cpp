@@ -277,59 +277,26 @@ void ParticleSimulation::updateAndDraw()
     int totalLeafNodes = 0;
     globalCOM = quadTree.getLeafNodes(leafNodes, totalLeafNodes);
 
-    sf::VertexArray points(sf::Points, particles.size());
-
     if (!isPaused) {
 
         if (!particles.empty()) {
             API_PROFILER(UpdateForces);
-            updateForces(points);
-        }
-
-    } else {
-
-        sf::Color c;
-
-        for (std::size_t i = 0; i < particles.size(); ++i) {
-            points[i].position = particles[i].position;
-
-            float vel = std::sqrt(particles[i].velocity.x * particles[i].velocity.x +
-                        particles[i].velocity.y * particles[i].velocity.y);
-
-            float maxVel = 3000.0f;
-
-            if (vel > maxVel) vel = maxVel;
-            
-            float p = vel / maxVel;
-
-            c.r = static_cast<uint8_t>(15 + (240.0f * p));
-            c.g = static_cast<uint8_t>(0.0f);
-            c.b = static_cast<uint8_t>(240.0f * (1.0f-p));
-            c.a = static_cast<uint8_t>(30.0f + (225.0f * p));
-
-            points[i].color = c;
+            updateForces();
         }
 
     }
-    
 
     if (!particles.empty() && showParticles) {
 
         {
             API_PROFILER(DrawParticles);
             
-            //sf::CircleShape c(0.5f, 30);
-            //c.setOrigin(c.getRadius(), c.getRadius());
-
             sf::VertexArray particleVertices(sf::Triangles, particles.size() * 3);
             int vi = 0;
 
             for (std::size_t i = 0; i < particles.size(); ++i) {
-                //c.setPosition(points[i].position);
-                //c.setFillColor(points[i].color);
-
-                const float center_x = points[i].position.x;
-                const float center_y = points[i].position.y;
+                const float center_x = particles[i].position.x;
+                const float center_y = particles[i].position.y;
                 const float y_pos = center_y - P_RADIUS_DIV_2;
 
                 // Right now to lower time for drawing function we are only drawing a triangle
@@ -340,19 +307,18 @@ void ParticleSimulation::updateAndDraw()
                 // Top vertex
                 particleVertices[vi].position.x = center_x;
                 particleVertices[vi].position.y = center_y + 0.5f;
-                particleVertices[vi++].color = points[i].color;
+                particleVertices[vi++].color = particles[i].color;
 
                 // Left vertex
                 particleVertices[vi].position.x = center_x - TRI_X_OFFSET;
                 particleVertices[vi].position.y = y_pos;
-                particleVertices[vi++].color = points[i].color;
+                particleVertices[vi++].color = particles[i].color;
 
                 // Right vertex
                 particleVertices[vi].position.x = center_x + TRI_X_OFFSET;
                 particleVertices[vi].position.y = y_pos;
-                particleVertices[vi++].color = points[i].color;
+                particleVertices[vi++].color = particles[i].color;
                
-                //gameWindow->draw(c);
             }
 
             gameWindow->draw(particleVertices);
@@ -449,7 +415,7 @@ static inline void attractParticleToMousePos(Particle* particle, sf::Vector2f& c
     //                            150.0f * (particle->position.y - current_mousePosF.y));
 }
 
-void ParticleSimulation::updateForces(sf::VertexArray& points)
+void ParticleSimulation::updateForces()
 {
     int n_threads = numThreads;
 
@@ -484,11 +450,8 @@ void ParticleSimulation::updateForces(sf::VertexArray& points)
 
                         if (distanceSquared < 0.01f)
                             continue;
-
                         
-                        const float radiusSquared = 1;
-                        //const float radiusSquared = (particle->radius + other->radius) *
-                        //                      (particle->radius + other->radius);
+                        const float radiusSquared = 1.0f;
 
                         const bool is_colliding = (distanceSquared <= radiusSquared);
                         
@@ -527,7 +490,7 @@ void ParticleSimulation::updateForces(sf::VertexArray& points)
         const std::size_t startIdx = i * chunkSize;
         const std::size_t endIdx = (i==numThreads-1) ? startIdx + chunkSize + remainder : startIdx + chunkSize;
         
-        auto threadFunc = [this, startIdx, endIdx, &points]() {
+        auto threadFunc = [this, startIdx, endIdx]() {
             sf::Color c;
 
             for (std::size_t j = startIdx; j < endIdx; j++) {
@@ -565,8 +528,6 @@ void ParticleSimulation::updateForces(sf::VertexArray& points)
                     particle->velocity += particle->acceleration * timeStep;
                     particle->position += particle->velocity * timeStep;
                     
-                    points[particle->index].position = particle->position;
-
                     float vel = std::sqrt(particle->velocity.x * particle->velocity.x +
                                 particle->velocity.y * particle->velocity.y);
 
@@ -577,12 +538,12 @@ void ParticleSimulation::updateForces(sf::VertexArray& points)
                     
                     float p = vel / maxVel;
 
-                    c.r = static_cast<uint8_t>(15 + (240.0f * p));
-                    c.g = static_cast<uint8_t>(0.0f);
+                    c.r = static_cast<uint8_t>(15.0f + (240.0f * p));
+                    c.g = 0;
                     c.b = static_cast<uint8_t>(240.0f * (1.0f-p));
                     c.a = static_cast<uint8_t>(30.0f + (225.0f * p));
 
-                    points[particle->index].color = c;
+                    particle->color = c;
 
                     particle->acceleration.x = 0.0f;
                     particle->acceleration.y = 0.0f;
@@ -603,7 +564,7 @@ void ParticleSimulation::updateForces(sf::VertexArray& points)
     numThreads = n_threads;
 }
 
-void ParticleSimulation::updateForcesLoadBalanced(sf::VertexArray& points) {
+void ParticleSimulation::updateForcesLoadBalanced() {
     int n_threads = numThreads;
 
     if  (leafNodes.size() < static_cast<std::size_t>(numThreads)) {
@@ -654,16 +615,14 @@ void ParticleSimulation::updateForcesLoadBalanced(sf::VertexArray& points) {
                         const float distanceSquared = dot(particle->position - other->position,
                                                     particle->position - other->position);
 
-                        if (distanceSquared == 0 || distanceSquared < 0.015f)
+                        if (distanceSquared < 0.01f)
                             continue;
 
-                        const float radiusSquared = (particle->radius + other->radius) *
-                                              (particle->radius + other->radius);
+                        const float radiusSquared = 1.0f;
 
                         const bool is_colliding = (distanceSquared <= radiusSquared);
                         
                         if (is_colliding) {
-                            //std::cout << "\t\t\tCOLLISION!!\n";
                             sf::Vector2f rHat = (other->position - particle->position) * inv_Sqrt(distanceSquared);
 
                             const float a1 = dot(particle->velocity, rHat);
@@ -701,7 +660,7 @@ void ParticleSimulation::updateForcesLoadBalanced(sf::VertexArray& points) {
         const std::size_t startIdx = endIndices[i]+1;
         const std::size_t endIdx = endIndices[i+1];
 
-        auto threadFunc = [this, startIdx, endIdx, &points]() {
+        auto threadFunc = [this, startIdx, endIdx]() {
             sf::Color c;
 
             for (std::size_t j = startIdx; j <= endIdx; ++j) {
@@ -739,8 +698,6 @@ void ParticleSimulation::updateForcesLoadBalanced(sf::VertexArray& points) {
                     particle->velocity += particle->acceleration * timeStep;
                     particle->position += particle->velocity * timeStep;
                     
-                    points[particle->index].position = particle->position;
-
                     float vel = std::sqrt(particle->velocity.x * particle->velocity.x +
                                 particle->velocity.y * particle->velocity.y);
 
@@ -755,7 +712,7 @@ void ParticleSimulation::updateForcesLoadBalanced(sf::VertexArray& points) {
                     c.b = static_cast<uint8_t>(240.0f * (1.0f-p));
                     c.a = static_cast<uint8_t>(30.0f + (225.0f * p));
 
-                    points[particle->index].color = c;
+                    particle->color = c;
 
                     particle->acceleration.x = 0.0f;
                     particle->acceleration.y = 0.0f;

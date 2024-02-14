@@ -11,8 +11,8 @@ public:
     sf::Vector2f position;
     sf::Vector2f velocity;
     sf::Vector2f acceleration;
+    sf::Color color;
     float mass;
-    float radius;
     int index;
 
     Particle();

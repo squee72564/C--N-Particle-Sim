@@ -76,8 +76,8 @@ public:
     inline void drawAimLine();
     inline void drawParticleVelocity();
 
-    void updateForces(sf::VertexArray& points);
-    void updateForcesLoadBalanced(sf::VertexArray& points);
+    void updateForces();
+    void updateForcesLoadBalanced();
 
     void addSierpinskiTriangleParticleChunk(int x, int y, int size, int depth);
     void addCheckeredParticleChunk();
