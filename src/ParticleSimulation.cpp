@@ -173,7 +173,7 @@ void ParticleSimulation::pollUserEvent()
                 {
                     isAiming = false;
                     final_mousePosF = getMousePosition(*gameWindow);
-                    particles.emplace_back(Particle(initial_mousePosF, (initial_mousePosF-final_mousePosF), particleMass, -1));
+                    particles.emplace_back(Particle(initial_mousePosF, (initial_mousePosF-final_mousePosF), particleMass));
                 }
 
                 if (isMiddleButtonPressed && !sf::Mouse::isButtonPressed(sf::Mouse::Middle))
@@ -260,7 +260,6 @@ void ParticleSimulation::updateAndDraw()
                 particles.pop_back();
                 --i;
             }
-            particles[i].index = i;
         }
     }
 
@@ -736,7 +735,7 @@ void ParticleSimulation::updateForcesLoadBalanced() {
 void ParticleSimulation::addSierpinskiTriangleParticleChunk(const int x, const int y, const int size, const int depth)
 {
     if (depth == 0) {
-        particles.emplace_back(Particle(sf::Vector2f(x,y), sf::Vector2f(0,0), particleMass, -1));
+        particles.emplace_back(Particle(sf::Vector2f(x,y), sf::Vector2f(0,0), particleMass));
     } else {
         const int halfSize = size/2;
 
@@ -752,7 +751,7 @@ void ParticleSimulation::addCheckeredParticleChunk()
     for (int i = windowWidth/3; i < ((2*windowWidth)/3); ++i) {
         for (int j = windowHeight/3; j < ((2*windowHeight)/3); ++j) {
             if((i/7) % 4 == (j/5) % 4)
-                particles.emplace_back(Particle(sf::Vector2f(i,j), sf::Vector2f(0,0), particleMass, -1));
+                particles.emplace_back(Particle(sf::Vector2f(i,j), sf::Vector2f(0,0), particleMass));
         }
     }
 }
@@ -770,7 +769,7 @@ void ParticleSimulation::addParticleDiagonal(int tiles, int particleNum)
             for (int k = 0; k < row; k++ ) {
                 const float x = (j * smallWidth / col) + smallWidth * i;
                 const float y = (k * smallHeight / row) + smallHeight * i;
-                particles.emplace_back(Particle(sf::Vector2f(x,y), sf::Vector2f(0,0), particleMass, -1));
+                particles.emplace_back(Particle(sf::Vector2f(x,y), sf::Vector2f(0,0), particleMass));
             }
         }
     }
@@ -790,7 +789,7 @@ void ParticleSimulation::addParticleDiagonal2(int tiles, int particleNum)
                 const float x = static_cast<float>(windowWidth) - ((j * smallWidth / col) + smallWidth * i);
                 const float y = (k * smallHeight / row) + smallHeight * i;
 
-                particles.emplace_back(Particle(sf::Vector2f(x, y), sf::Vector2f(0, 0), particleMass, -1));
+                particles.emplace_back(Particle(sf::Vector2f(x, y), sf::Vector2f(0, 0), particleMass));
             }
         }
     }
