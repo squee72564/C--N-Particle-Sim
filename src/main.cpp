@@ -14,7 +14,7 @@ const int WINDOW_HEIGHT = 1080;
 int main(int argc, char* argv[])
 {
     int num_threads = 1;
-    int depth = 8;
+    int max_depth = 8;
     int cap = 64;
 
     if (argc < 4) {
@@ -22,8 +22,14 @@ int main(int argc, char* argv[])
         return 1;
     } else {
         num_threads = std::atoi(argv[1]);
-        depth = std::atoi(argv[2]);
+        max_depth = std::atoi(argv[2]);
         cap = std::atoi(argv[3]);
+
+        if (!num_threads || !max_depth || !cap) {
+            std::cout << "Usage: " << argv[0] << " <num threads> <tree max depth> <tree node capacity>\n";
+            std::cout << "--  Please ensure valid integers are passed as arguments.\n";
+            return 1;
+        }
     }
 
     // Create the window
@@ -31,7 +37,7 @@ int main(int argc, char* argv[])
     window.setFramerateLimit(60); // Limit the frame rate to 60 FPS
 
     //Start Particle Simulation 
-    ParticleSimulation particleSimulation(window, num_threads, TIME_STEP, grav, depth, cap);
+    ParticleSimulation particleSimulation(window, num_threads, TIME_STEP, grav, max_depth, cap);
     std::cout << "Starting particle sim...\n";
     particleSimulation.run();
     std::cout << "Particle sim ended\n";
