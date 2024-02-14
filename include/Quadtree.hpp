@@ -48,11 +48,11 @@ public:
   ~QuadTree();
 
   void initTree();
-  void display(sf::RenderWindow* gameWindow);
+  void display(sf::RenderWindow* gameWindow, int totalLeafNodes);
   void insert(Particle* particle, int index);
-  void split(const int);
+  void split(const int parentIdx);
   void deleteTree();
-  sf::Vector2f getLeafNodes(std::vector<QuadTree::Node*>& vec);
+  sf::Vector2f getLeafNodes(std::vector<QuadTree::Node*>& vec, int& totalLeafNodes);
   bool contains(const QuadTree::Node*, const sf::Vector2f& pos);
   bool empty(const QuadTree::Node*);
   const std::vector<Particle*>& getParticleVec(const QuadTree::Node*);
@@ -60,6 +60,7 @@ public:
   int getTotalMass(const QuadTree::Node*);
   int getMaxDepth();
   int getNodeCap();
+  void setMaxDepth(int depth);
 };
 
 #endif
