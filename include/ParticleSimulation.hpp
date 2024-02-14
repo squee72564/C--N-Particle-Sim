@@ -6,8 +6,6 @@
 #include "Profiler.hpp"
 #include <vector>
 #include <thread>
-#include <chrono>
-#include <fstream>
 
 class ParticleSimulation
 {
@@ -15,6 +13,7 @@ private:
     // Simulation threads
     sf::RenderWindow* gameWindow;
     int numThreads;
+    int treeMaxDepth;
 
     // Game Window
     int windowWidth;
