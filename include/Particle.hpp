@@ -13,10 +13,9 @@ public:
     sf::Vector2f acceleration;
     sf::Color color;
     float mass;
-    int index;
 
     Particle();
-    Particle(const sf::Vector2f& pos, const sf::Vector2f& vel, float m, int index);
+    Particle(const sf::Vector2f& pos, const sf::Vector2f& vel, float m);
     Particle(const Particle& particle);
     Particle(Particle&& particle);
     Particle& operator=(const Particle& particle);
