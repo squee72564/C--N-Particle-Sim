@@ -1,17 +1,10 @@
 #ifndef QUADTREE
 #define QUADTREE
-#include <array>
+
 #include <vector>
-#include <stack>
-
 #include <algorithm>
-#include <mutex>
-
 #include <functional>
-#include <cassert>
 #include <utility>
-
-#include <iostream>
 
 #include "Particle.hpp"
 
