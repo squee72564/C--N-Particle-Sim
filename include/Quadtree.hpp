@@ -12,8 +12,6 @@ class QuadTree {
 
 public:
   struct Node {
-    int m_level;
-
     sf::RectangleShape m_rect;
 
     bool isLeaf;
@@ -48,7 +46,7 @@ public:
 
   void initTree();
   void display(sf::RenderWindow* gameWindow, int totalLeafNodes);
-  void insert(Particle* particle, int index);
+  void insert(Particle* particle);
   void split(const int parentIdx);
   void deleteTree();
   sf::Vector2f getLeafNodes(std::vector<QuadTree::Node*>& vec, int& totalLeafNodes);
