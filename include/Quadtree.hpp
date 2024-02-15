@@ -24,12 +24,18 @@ public:
     std::vector<Particle*> m_index;
   };
 
+  struct ParticleElementNode {
+    int next_particle;
+    int particle_index;
+  };
+
 private:
   int w;
   int h;
   int treeMaxDepth;
   unsigned int nodeCap;
-  std::vector<QuadTree::Node> nodes;
+  std::vector<QuadTree::Node> quadTreeNodes;
+  std::vector<QuadTree::ParticleElementNode> particleNodes;
 
 public:
   QuadTree();
