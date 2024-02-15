@@ -269,7 +269,7 @@ void ParticleSimulation::updateAndDraw()
     {
         API_PROFILER(InsertIntoQuadTree);
         for (std::size_t i = 0; i < particles.size(); ++i) {
-            quadTree.insert(&particles[i], 0);
+            quadTree.insert(&particles[i]);
         }
     }
     
@@ -417,7 +417,7 @@ static inline void attractParticleToMousePos(Particle* particle, sf::Vector2f& c
 void ParticleSimulation::updateForces()
 {
     int n_threads = numThreads;
-
+    
     if  (leafNodes.size() < static_cast<std::size_t>(numThreads)) {
         numThreads = leafNodes.size();
     }
@@ -430,6 +430,7 @@ void ParticleSimulation::updateForces()
         const std::size_t startIdx = i * chunkSize;
         const std::size_t endIdx = (i==numThreads-1) ? startIdx + chunkSize + remainder : startIdx + chunkSize;
         
+
         auto threadFunc = [this, startIdx, endIdx]() {
             for (std::size_t j = startIdx; j < endIdx; j++) {
 
