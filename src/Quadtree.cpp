@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "QuadTree.hpp"
 
 QuadTree::QuadTree()
@@ -16,6 +18,7 @@ QuadTree::QuadTree(const int w, const int h, const int maxDepth, const int capac
     nodeCap(capacity)
 {
     std::cout << "Non-default Constructor for QuadTree called.\n";
+    
     // Initially set up vector for nodes, this will depend on max depth
     const int totalPossibleNodes = pow(4,treeMaxDepth+1)-1;
     nodes.reserve(totalPossibleNodes);
@@ -121,8 +124,6 @@ void QuadTree::initTree()
             //std::cout << "Continuing at at max node: " << currIdx << "/" << totalNodes << "\n";
             continue;
         }
-
-        assert(currIdx < static_cast<int>(nodes.capacity()));
 
         const QuadTree::Node& currentNode = nodes[currIdx];
 
