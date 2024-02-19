@@ -110,7 +110,7 @@ void ParticleSimulation::run()
     
     //addCheckeredParticleChunk();
 
-    addSierpinskiTriangleParticleChunk((simulationWidth-simulationHeight)/2, 0, simulationHeight, 10);
+    addSierpinskiTriangleParticleChunk((simulationWidth-simulationHeight)/2, 0, simulationHeight, 11);
     
     while (gameWindow->isOpen())
     {
@@ -270,9 +270,7 @@ void ParticleSimulation::updateAndDraw()
 
     {
         API_PROFILER(InsertIntoQuadTree);
-        for (std::size_t i = 0; i < particles.size(); ++i) {
-            quadTree.insert(&particles[i]);
-        }
+        quadTree.insert(particles);
     }
     
     int totalLeafNodes = 0;
@@ -434,44 +432,55 @@ void ParticleSimulation::updateForces()
         
 
         auto threadFunc = [this, startIdx, endIdx]() {
+
+            const std::vector<QuadTree::ParticleElementNode>& particleElementNodeVec = quadTree.getParticleElementNodeVec();
+
             for (std::size_t j = startIdx; j < endIdx; j++) {
 
                 if (quadTree.empty(leafNodes[j]))
                     continue;
 
-                const std::vector<Particle*>& leafNodeParticleVec = quadTree.getParticleVec(leafNodes[j]);
-                
-                for (Particle* particle : leafNodeParticleVec) {
-                    for (Particle* other : leafNodeParticleVec) {
+                const int first_element_idx = leafNodes[j]->firstElement;
 
-                        if (other == particle)
+                for (int i = first_element_idx; i != -1; i = particleElementNodeVec[i].next_particle) {
+
+                    int particle_index = particleElementNodeVec[i].particle_index;
+                    Particle& particle = particles[particle_index];
+
+                    for (int j = first_element_idx; j != -1; j = particleElementNodeVec[j].next_particle) {
+                        int other_index = particleElementNodeVec[j].particle_index;
+                        Particle& other = particles[other_index];
+
+                        if (&other == &particle) {
                             continue;
+                        }
 
-                        const float distanceSquared = dot(particle->position - other->position,
-                                                    particle->position - other->position);
+                        const float distanceSquared = dot(particle.position - other.position,
+                                                    particle.position - other.position);
 
-                        if (distanceSquared < 0.01f)
+                        if (distanceSquared < 0.01f) {
                             continue;
+                        }
                         
                         const float radiusSquared = 1.0f;
 
                         const bool is_colliding = (distanceSquared <= radiusSquared);
                         
                         if (is_colliding) {
-                            sf::Vector2f rHat = (other->position - particle->position) * inv_Sqrt(distanceSquared);
+                            sf::Vector2f rHat = (other.position - particle.position) * inv_Sqrt(distanceSquared);
 
-                            const float a1 = dot(particle->velocity, rHat);
-                            const float a2 = dot(other->velocity, rHat);
+                            const float a1 = dot(particle.velocity, rHat);
+                            const float a2 = dot(other.velocity, rHat);
                         
-                            const float p = 2.0f * particle->mass * other->mass * (a1-a2)/(particle->mass + other->mass);
+                            const float p = 2.0f * particle.mass * other.mass * (a1-a2)/(particle.mass + other.mass);
                             
-                            particle->velocity -= p/particle->mass * (rHat);
-                            other->velocity += p/other->mass * (rHat);
+                            particle.velocity -= p/particle.mass * (rHat);
+                            other.velocity += p/other.mass * (rHat);
 
                         } else {
 
-                            particle->acceleration += (other->mass / distanceSquared) * 
-                                                        BIG_G * (other->position - particle->position);
+                            particle.acceleration += (other.mass / distanceSquared) * 
+                                                        BIG_G * (other.position - particle.position);
                         }
                     }
                 }
@@ -494,44 +503,45 @@ void ParticleSimulation::updateForces()
         
         auto threadFunc = [this, startIdx, endIdx]() {
             sf::Color c;
+            const std::vector<QuadTree::ParticleElementNode>& particleElementNodeVec = quadTree.getParticleElementNodeVec();
 
             for (std::size_t j = startIdx; j < endIdx; j++) {
 
-                const std::vector<Particle*>& leafNodeParticleVec = quadTree.getParticleVec(leafNodes[j]);
-                
-                // Use global com/total mass and local com/local mass to get the combined
-                // gravitational force of all other leaf nodes but this current one
                 sf::Vector2f newCOM(0,0);
 
-                int nonLocalParticles = (particles.size() - leafNodeParticleVec.size());
+                int localParticleCount = leafNodes[j]->count;
+                int nonLocalParticles = (particles.size() - localParticleCount);
 
                 if (nonLocalParticles != 0) {
 
                     newCOM.x = static_cast<float>(particles.size() * globalCOM.x - quadTree.getCOM(leafNodes[j]).x) /
-                                    static_cast<float>(particles.size() - leafNodeParticleVec.size());
+                                    static_cast<float>(particles.size() - localParticleCount);
                     newCOM.y = static_cast<float>(particles.size() * globalCOM.y - quadTree.getCOM(leafNodes[j]).y) /
-                                    static_cast<float>(particles.size() - leafNodeParticleVec.size());
+                                    static_cast<float>(particles.size() - localParticleCount);
                 }
 
-                for (Particle* particle : leafNodeParticleVec) {
-                    
-                    if (nonLocalParticles != 0) {
-                        const float distanceSquared = dot(particle->position - newCOM,
-                                                      particle->position - newCOM);
+                for (int i = leafNodes[j]->firstElement; i != -1; i = particleElementNodeVec[i].next_particle) {
 
-                        particle->acceleration += (nonLocalParticles / distanceSquared) * BIG_G *
-                                                        (newCOM - particle->position);
+                    int particle_index = particleElementNodeVec[i].particle_index;
+                    Particle& particle = particles[particle_index];
+
+                    if (nonLocalParticles != 0) {
+                        const float distanceSquared = dot(particle.position - newCOM,
+                                                      particle.position - newCOM);
+
+                        particle.acceleration += (nonLocalParticles / distanceSquared) * BIG_G *
+                                                        (newCOM - particle.position);
                     }
 
                     if (isRightButtonPressed) {
                         attractParticleToMousePos(particle, current_mousePosF);
                     }
 
-                    particle->velocity += particle->acceleration * timeStep;
-                    particle->position += particle->velocity * timeStep;
+                    particle.velocity += particle.acceleration * timeStep;
+                    particle.position += particle.velocity * timeStep;
                     
-                    float vel = std::sqrt(particle->velocity.x * particle->velocity.x +
-                                particle->velocity.y * particle->velocity.y);
+                    float vel = std::sqrt(particle.velocity.x * particle.velocity.x +
+                                particle.velocity.y * particle.velocity.y);
 
 
                     float maxVel = 3000.0f;
@@ -545,179 +555,11 @@ void ParticleSimulation::updateForces()
                     c.b = static_cast<uint8_t>(240.0f * (1.0f-p));
                     c.a = static_cast<uint8_t>(30.0f + (225.0f * p));
 
-                    particle->color = c;
+                    particle.color = c;
 
-                    particle->acceleration.x = 0.0f;
-                    particle->acceleration.y = 0.0f;
-                }
-            }
-        };
+                    particle.acceleration.x = 0.0f;
+                    particle.acceleration.y = 0.0f;
 
-        threads.emplace_back(threadFunc);
-    }
-
-    for (auto& thread : threads)
-    {
-        thread.join();
-    }
-
-    threads.clear();
-
-    numThreads = n_threads;
-}
-
-void ParticleSimulation::updateForcesLoadBalanced() {
-    int n_threads = numThreads;
-
-    if  (leafNodes.size() < static_cast<std::size_t>(numThreads)) {
-        numThreads = leafNodes.size();
-    }
-    
-    int endIndices[numThreads+1] = {-1};
-    int currIdx = 1;
-    std::size_t currParticleCount = 0;
-
-    const std::size_t particleChunkSize = numThreads / particles.size();
-
-    for (std::size_t i = 0; i < leafNodes.size(); ++i) {
-        if (currIdx == numThreads-1) {
-            break;
-        }
-
-        currParticleCount += quadTree.getParticleVec(leafNodes[i]).size();
-
-        if (currParticleCount >= particleChunkSize) {
-            endIndices[currIdx++] = i;
-            currParticleCount = 0;
-        }
-    }
-
-    endIndices[numThreads-1] = leafNodes.size()-1;
-
-    for (int i = 0; i < numThreads; ++i) {
-
-        // Start and end indexes for the leaf node vector
-        const std::size_t startIdx = endIndices[i]+1;
-        const std::size_t endIdx = endIndices[i+1];
-
-        auto threadFunc = [this, startIdx, endIdx]() {
-            for (std::size_t j = startIdx; j <= endIdx; j++) {
-
-                if (quadTree.empty(leafNodes[j]))
-                    continue;
-
-                const std::vector<Particle*>& leafNodeParticleVec = quadTree.getParticleVec(leafNodes[j]);
-                
-                for (Particle* particle : leafNodeParticleVec) {
-                    for (Particle* other : leafNodeParticleVec) {
-
-                        if (other == particle)
-                            continue;
-
-                        const float distanceSquared = dot(particle->position - other->position,
-                                                    particle->position - other->position);
-
-                        if (distanceSquared < 0.01f)
-                            continue;
-
-                        const float radiusSquared = 1.0f;
-
-                        const bool is_colliding = (distanceSquared <= radiusSquared);
-                        
-                        if (is_colliding) {
-                            sf::Vector2f rHat = (other->position - particle->position) * inv_Sqrt(distanceSquared);
-
-                            const float a1 = dot(particle->velocity, rHat);
-                            const float a2 = dot(other->velocity, rHat);
-                        
-                            const float p = 2.0f * particle->mass * other->mass * (a1-a2)/(particle->mass + other->mass);
-                            
-                            particle->velocity -= p/particle->mass * (rHat);
-                            other->velocity += p/other->mass * (rHat);
-
-                        } else {
-
-                            particle->acceleration += (other->mass / distanceSquared) * 
-                                                        BIG_G * (other->position - particle->position);
-                        }
-                    }
-                }
-            }
-        };
-
-        threads.emplace_back(threadFunc);
-    }
-
-    for (auto& thread : threads)
-    {
-        thread.join();
-    }
-
-    threads.clear();
-
-
-    for (int i = 0; i < numThreads; ++i) {
-
-        // Start and end indexes for the leaf node vector
-        const std::size_t startIdx = endIndices[i]+1;
-        const std::size_t endIdx = endIndices[i+1];
-
-        auto threadFunc = [this, startIdx, endIdx]() {
-            sf::Color c;
-
-            for (std::size_t j = startIdx; j <= endIdx; ++j) {
-
-                const std::vector<Particle*>& leafNodeParticleVec = quadTree.getParticleVec(leafNodes[j]);
-                
-                // Use global com/total mass and local com/local mass to get the combined
-                // gravitational force of all other leaf nodes but this current one
-                sf::Vector2f newCOM(0,0);
-
-                int nonLocalParticles = (particles.size() - leafNodeParticleVec.size());
-
-                if (nonLocalParticles != 0) {
-
-                    newCOM.x = static_cast<float>(particles.size() * globalCOM.x - quadTree.getCOM(leafNodes[j]).x) /
-                                    static_cast<float>(particles.size() - leafNodeParticleVec.size());
-                    newCOM.y = static_cast<float>(particles.size() * globalCOM.y - quadTree.getCOM(leafNodes[j]).y) /
-                                    static_cast<float>(particles.size() - leafNodeParticleVec.size());
-                }
-
-                for (Particle* particle : leafNodeParticleVec) {
-                    
-                    if (nonLocalParticles != 0) {
-                        const float distanceSquared = dot(particle->position - newCOM,
-                                                      particle->position - newCOM);
-
-                        particle->acceleration += (nonLocalParticles / distanceSquared) * BIG_G *
-                                                        (newCOM - particle->position);
-                    }
-
-                    if (isRightButtonPressed) {
-                        attractParticleToMousePos(particle, current_mousePosF);
-                    }
-
-                    particle->velocity += particle->acceleration * timeStep;
-                    particle->position += particle->velocity * timeStep;
-                    
-                    float vel = std::sqrt(particle->velocity.x * particle->velocity.x +
-                                particle->velocity.y * particle->velocity.y);
-
-                    float maxVel = 3000.0f;
-
-                    if (vel > maxVel) vel = maxVel;
-                    
-                    float p = vel / maxVel;
-
-                    c.r = static_cast<uint8_t>(15 + (240.0f * p));
-                    c.g = static_cast<uint8_t>(0.0f);
-                    c.b = static_cast<uint8_t>(240.0f * (1.0f-p));
-                    c.a = static_cast<uint8_t>(30.0f + (225.0f * p));
-
-                    particle->color = c;
-
-                    particle->acceleration.x = 0.0f;
-                    particle->acceleration.y = 0.0f;
                 }
             }
         };

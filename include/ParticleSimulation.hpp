@@ -79,7 +79,6 @@ public:
     inline void drawParticleVelocity();
 
     void updateForces();
-    void updateForcesLoadBalanced();
 
     void addSierpinskiTriangleParticleChunk(int x, int y, int size, int depth);
     void addCheckeredParticleChunk();
