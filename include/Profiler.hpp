@@ -2,7 +2,7 @@
 #define PROFILER_H
 
 // Comment this out or set to zero to disable
-#define ENABLE_API_PROFILER 1
+#define ENABLE_API_PROFILER 0
 
 #if ENABLE_API_PROFILER
 
@@ -76,7 +76,7 @@ private:
     float interval = (end - m_threadInfo->lastReportTime) * s_ooFrequency;
     float measured = m_threadInfo->accumulator * s_ooFrequency;
 
-    printf("\nTID 0x%lx time spent in \"%s\": %.0f/%.0f microsec %.1f%% %lldx\n",
+    printf("TID 0x%lx time spent in \"%s\": %.0f/%.0f microsec %.1f%% %lldx\n",
       GetCurrentThreadId(),
       m_threadInfo->name,
       measured * 1e6,
@@ -150,7 +150,7 @@ private:
 
     double measured = m_threadInfo->accumulator;
 
-    printf("\nTID 0x%lx time spent in \"%s\": %.0f/%.0f microsec %.1f%% %lldx\n",
+    printf("TID 0x%lx time spent in \"%s\": %.0f/%.0f microsec %.1f%% %lldx\n",
       (long) pthread_self(),
       m_threadInfo->name,
       measured,
@@ -165,7 +165,7 @@ private:
 };
 
 // Initialize static class members
-long long APIProfiler::s_reportInterval = 0;
+inline long long APIProfiler::s_reportInterval = 0;
 
 #endif //API_PROFILER_UNIX
 

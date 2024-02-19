@@ -1,64 +1,60 @@
 #ifndef QUADTREE
 #define QUADTREE
-#include <array>
+
 #include <vector>
-#include <stack>
 #include <algorithm>
-#include <mutex>
+#include <functional>
+#include <utility>
+
 #include "Particle.hpp"
 
-/**TODO
- * Change this class into a 1d array structure for the quadtree with size
- * depending on the depth. This will be much more cache friendly than allocating
- * the new nodes on the heap
- *
- * Also the mutex is no longer being used, so we can either use it to synchronize
- * multiple threads inserting into the tree, or get rid of it alltogether
- */
-
 class QuadTree {
+
+public:
+  struct Node {
+    int firstElement; // Index of first element if leaf and not empty, else -1
+    int count;        // Stores number of elements in leaf of -1 if not leaf
+    sf::Vector2f com;
+    float totalMass;
+  };
+
+  struct ParticleElementNode {
+    int next_particle;
+    int particle_index;
+
+    ParticleElementNode(int next, int idx) : next_particle(next), particle_index(idx) {};
+  };
+
 private:
-  int m_level;
+  int w;
+  int h;
   int treeMaxDepth;
   unsigned int nodeCap;
-
-  float width;
-  float height;
-
-  bool isLeaf;
-
-  std::array<QuadTree*, 4> m_subnode;
-  
-  std::vector<Particle*> m_index;
-
-  sf::RectangleShape m_rect;
-
-  sf::Vector2f com;
-  int totalMass;
+  std::vector<QuadTree::Node> quadTreeNodes;
+  std::vector<QuadTree::ParticleElementNode> particleNodes;
 
 public:
   QuadTree();
-  //~QuadTree();
-  QuadTree(const int m_level, const sf::Vector2f ori, const float h, const float w, const int treeMaxDepth, const int nodeCap);
-  QuadTree(const int m_level, const float h, const float w, const int treeMaxDepth, const int nodeCap);
-  QuadTree(const QuadTree& qt);
-  QuadTree(QuadTree&& qt);
-  QuadTree& operator=(const QuadTree& other);  
-  QuadTree& operator=(QuadTree&& other);  
-  
-  void split();
-  void display(sf::RenderWindow* gameWindow);
-  void insert(Particle* particle);
+  QuadTree(const int w, const int h, const int maxDepth, const int capacity);
+  QuadTree(const QuadTree& other);
+  QuadTree(QuadTree&& other) noexcept;
+  QuadTree& operator=(const QuadTree& other);
+  QuadTree& operator=(QuadTree&& other) noexcept;
+  ~QuadTree();
+
+  void initTree();
+  void display(sf::RenderWindow* gameWindow, int totalLeafNodes);
+  void insert(std::vector<Particle>& particles);
+  void split(const int parentIdx, const sf::Vector2f& childSize, const sf::Vector2f* childOffsets, std::vector<Particle>& particles);
   void deleteTree();
-  void getLeafNodes(std::vector<QuadTree*>& vec);
-  bool contains(sf::Vector2f& pos);
-  bool empty();
-  std::vector<Particle*>& getParticleVec();
-  sf::Vector2f& getCOM();
-  int getTotalMass();
+  sf::Vector2f getLeafNodes(std::vector<QuadTree::Node*>& vec, int& totalLeafNodes);
+  bool empty(const QuadTree::Node*);
+  const std::vector<QuadTree::ParticleElementNode>& getParticleElementNodeVec();
+  const sf::Vector2f& getCOM(const QuadTree::Node*);
+  int getTotalMass(const QuadTree::Node*);
   int getMaxDepth();
   int getNodeCap();
-  void setMaxDepth(unsigned int);
+  void setMaxDepth(int depth);
 };
 
 #endif

@@ -1,4 +1,8 @@
 #include "ParticleSimulation.hpp"
+#include <iostream>
+
+//static const float REFLECTION_FACTOR = 0.010f;
+static const float BIG_G = 35.00f;
 
 static sf::Vector2f getMousePosition(const sf::RenderWindow &window)
 {
@@ -18,22 +22,47 @@ static inline float inv_Sqrt(float number)
     return 1.0f / squareRoot;
 }
 
-ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window, int nthreads, int treeDepth, int nodeCap, std::string logfile)
+ParticleSimulation::ParticleSimulation(int simulationWidth,
+                                       int simulationHeight,
+                                       sf::RenderWindow &window,
+                                       int numThreads,
+                                       float dt,
+                                       const sf::Vector2f& g,
+                                       int treeDepth,
+                                       int nodeCap)
+  : numThreads(numThreads),
+    treeMaxDepth(treeDepth),
+    simulationWidth(simulationWidth),
+    simulationHeight(simulationHeight),
+    gameView(sf::Vector2f(window.getSize().x/2, window.getSize().y/2), sf::Vector2f(window.getSize().x, window.getSize().y)),
+    gen(std::mt19937(rd())),
+    dis(std::uniform_int_distribution<>(0, 255)),
+    timeStep(dt),
+    particleMass(1.03f),
+    gravity(g),
+    globalCOM(sf::Vector2f(0.0f, 0.0f)),
+    current_mousePosF(sf::Vector2f(0.0f, 0.0f)),
+    initial_mousePosF(sf::Vector2f(0.0f, 0.0f)),
+    final_mousePosF(sf::Vector2f(0.0f, 0.0f)),
+    isRightButtonPressed(false),
+    isMiddleButtonPressed(false),
+    isAiming(false),
+    showVelocity(false),
+    showParticles(true),
+    isPaused(true),
+    font(),
+    threads(),
+    leafNodes(),
+    particles(),
+    quadTree(QuadTree(simulationWidth, simulationHeight, treeDepth, nodeCap))
 {
     gameWindow = &window;
-    windowWidth = window.getSize().x;
-    windowHeight = window.getSize().y;
-
-    numThreads = nthreads;
-    threads.reserve(nthreads);
-
-    timeStep = dt;
-    gravity = g;
-    particleMass = 1.0f;
-    gen = std::mt19937(rd());
-    dis = std::uniform_int_distribution<>(0, 255);
+    gameWindow->setView(gameView);
 
     font.loadFromFile("fonts/corbel.TTF");
+    threads.reserve(numThreads);
+    leafNodes.reserve(pow(4,treeDepth)+1);
+    particles.reserve(100000);
 
     particleCountText.setFont(font);
     particleCountText.setCharacterSize(24);
@@ -59,91 +88,6 @@ ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::Rend
     isPausedText.setOutlineThickness(1.0f);
     isPausedText.setString("Paused");
     isPausedText.setPosition(0, 50);
-
-    quadTree = QuadTree(0, windowWidth, windowHeight, treeDepth, nodeCap);
-
-    isPaused = true;
-    isRightButtonPressed = false;
-    isAiming = false;
-    showQuadTree = true;
-    showVelocity = true;
-    showParticles = true;
-
-    iterationCount = 0;
-    totalTime = 0;
-    insertionTime = 0;
-    leafnodeTime = 0;
-    updateTime = 0;
-    moveTime = 0;
-    drawTime = 0;
-
-    particles.reserve(5000);
-    leafNodes.reserve(pow(4,treeDepth));
-
-    logfileName = logfile;
-}
-
-ParticleSimulation::ParticleSimulation(float dt, const sf::Vector2f& g, sf::RenderWindow &window, int nthreads, int treeDepth, int nodeCap)
-{
-    gameWindow = &window;
-    windowWidth = window.getSize().x;
-    windowHeight = window.getSize().y;
-
-    numThreads = nthreads;
-    threads.reserve(nthreads);
-
-    timeStep = dt;
-    gravity = g;
-    particleMass = 1.0f;
-    gen = std::mt19937(rd());
-    dis = std::uniform_int_distribution<>(0, 255);
-
-    font.loadFromFile("fonts/corbel.TTF");
-
-    particleCountText.setFont(font);
-    particleCountText.setCharacterSize(24);
-    particleCountText.setFillColor(sf::Color::White);
-    particleCountText.setOutlineColor(sf::Color::Blue);
-    particleCountText.setOutlineThickness(1.0f);
-
-    particleMassText.setFont(font);
-    particleMassText.setCharacterSize(12);
-    particleMassText.setFillColor(sf::Color::White);
-    particleMassText.setPosition(0, 100);
-    particleMassText.setOutlineColor(sf::Color::Blue);
-    particleMassText.setOutlineThickness(1.0f);
-
-    velocityText.setFont(font);
-    velocityText.setCharacterSize(10);
-    velocityText.setFillColor(sf::Color::White);
-
-    isPausedText.setFont(font);
-    isPausedText.setCharacterSize(24);
-    isPausedText.setFillColor(sf::Color::White);
-    isPausedText.setOutlineColor(sf::Color::Red);
-    isPausedText.setOutlineThickness(1.0f);
-    isPausedText.setString("Paused");
-    isPausedText.setPosition(0, 50);
-
-    quadTree = QuadTree(0, windowWidth, windowHeight, treeDepth, nodeCap);
-
-    isPaused = true;
-    isRightButtonPressed = false;
-    isAiming = false;
-    showQuadTree = true;
-    showVelocity = true;
-    showParticles = true;
-
-    iterationCount = 0;
-    totalTime = 0;
-    insertionTime = 0;
-    leafnodeTime = 0;
-    updateTime = 0;
-    moveTime = 0;
-    drawTime = 0;
-
-    particles.reserve(8192);
-    leafNodes.reserve(pow(4,treeDepth));
 }
 
 ParticleSimulation::~ParticleSimulation()
@@ -160,15 +104,13 @@ ParticleSimulation::~ParticleSimulation()
 
 void ParticleSimulation::run()
 {
-    iterationCount = 0;
-    totalTime = 0.0;
+    //addParticleDiagonal(12, 30000);
+    //addParticleDiagonal2(12, 30000);
     
-    addParticleDiagonal(5, 5000);
-    addParticleDiagonal(3, 5000);
-    addParticleDiagonal2(5, 5000);
-    addParticleDiagonal2(3, 5000);
+    //addCheckeredParticleChunk();
+
+    addSierpinskiTriangleParticleChunk((simulationWidth-simulationHeight)/2, 0, simulationHeight, 11);
     
-    // Run the program as long as the window is open
     while (gameWindow->isOpen())
     {
         pollUserEvent();
@@ -178,34 +120,40 @@ void ParticleSimulation::run()
 
 void ParticleSimulation::pollUserEvent()
 {
-    // Check for events
     while (gameWindow->pollEvent(event))
     {
+        int scrollDelta = 0;
+
         switch (event.type)
         {
-            case sf::Event::Closed:	// Window Closed
+            case sf::Event::Closed:
                 gameWindow->close();
                 break;
 
-            case sf::Event::KeyPressed:	// Key press
+            case sf::Event::KeyPressed:
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z))
                 {
-                    if (quadTree.getMaxDepth() >= 0) { quadTree.setMaxDepth(quadTree.getMaxDepth()-1); }
+                    if (quadTree.getMaxDepth() > 0) quadTree.setMaxDepth(quadTree.getMaxDepth()-1);
                 }
 
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::X))
                 {
-                    if (quadTree.getMaxDepth() < 10) { quadTree.setMaxDepth(quadTree.getMaxDepth()+1); }
+                    if (quadTree.getMaxDepth() < treeMaxDepth) quadTree.setMaxDepth(quadTree.getMaxDepth()+1);
                 }
 
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::I))
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num1))
                 {
                     showVelocity = (showVelocity) ? false : true;
                 }
 
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::G))
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num2))
                 {
                     showQuadTree = (showQuadTree) ? false : true;
+                }
+
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num3))
+                {
+                    showParticles = (showParticles) ? false : true;
                 }
 
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::P))
@@ -231,9 +179,14 @@ void ParticleSimulation::pollUserEvent()
                 {
                     isAiming = false;
                     final_mousePosF = getMousePosition(*gameWindow);
-                    particles.emplace_back(Particle(initial_mousePosF, (initial_mousePosF-final_mousePosF), particleMass, gen , dis));
+                    particles.emplace_back(Particle(initial_mousePosF, (initial_mousePosF-final_mousePosF), particleMass));
                 }
 
+                if (isMiddleButtonPressed && !sf::Mouse::isButtonPressed(sf::Mouse::Middle))
+                {
+                    isMiddleButtonPressed = false;
+                }
+ 
                 break;
 
             case sf::Event::MouseButtonPressed:	// RMB or LMB pressed
@@ -250,281 +203,287 @@ void ParticleSimulation::pollUserEvent()
                     initial_mousePosF = getMousePosition(*gameWindow);
                 }
 
+                if (sf::Mouse::isButtonPressed(sf::Mouse::Middle))
+                {
+                    isMiddleButtonPressed = true;
+                    scroll_mousePosF = getMousePosition(*gameWindow);
+                }
+
                 break;
+            
+            case sf::Event::MouseWheelScrolled:	// Scroll in
 
-            case sf::Event::MouseWheelScrolled:	// Emplace particle at mouse position
-						
-                current_mousePosF = getMousePosition(*gameWindow);
+                scrollDelta = event.mouseWheelScroll.delta;
 
-                // Add a new particle with 0 velocity
-                particles.emplace_back(Particle(current_mousePosF, sf::Vector2f(0,0), particleMass, gen , dis));
+                if (scrollDelta < 0) gameView.move((getMousePosition(*gameWindow) - gameView.getCenter()) * 0.13f);
+
+                gameView.zoom(1 + (event.mouseWheelScroll.delta*0.05f));
+                gameWindow->setView(gameView);
+
                 break;
-
+            
             default:
                 break;
         }
     }
 }
 
-DEFINE_API_PROFILER(insertIntoTree);
-DEFINE_API_PROFILER(updateForces);
-DEFINE_API_PROFILER(updateRest);
-DEFINE_API_PROFILER(draw);
+#define P_RADIUS_DIV_2 (0.5f / 2.0f)
+#define TRI_X_OFFSET ((0.5f * std::sqrt(3.0f) / 2.0f)) 
+
+DEFINE_API_PROFILER(PopAndSwap);
+DEFINE_API_PROFILER(InsertIntoQuadTree);
+DEFINE_API_PROFILER(UpdateForces);
+DEFINE_API_PROFILER(DrawParticles);
+DEFINE_API_PROFILER(DrawVelocities);
+DEFINE_API_PROFILER(DrawQuadTree);
 
 void ParticleSimulation::updateAndDraw()
 {
-    // Clear the window graphics
     gameWindow->clear();
-    // Clear Quadtree
+
     quadTree.deleteTree();
 
     leafNodes.clear();
 
-    // If LMB is pressed, create line for aim and show angle
     if (isRightButtonPressed || isAiming) {
         current_mousePosF = getMousePosition(*gameWindow);
     }
 
+    if (isMiddleButtonPressed) {
+        gameView.move((scroll_mousePosF - getMousePosition(*gameWindow)) * 0.07f);
+        gameWindow->setView(gameView);
+    }
 
     {
-        API_PROFILER(insertIntoTree);
-        for (std::size_t j = 0; j < particles.size(); j++) {
-            // Check if the particle's position is outside the window bounds
-            if (particles[j].position.x < 0 || particles[j].position.x > windowWidth ||
-                particles[j].position.y > windowHeight || particles[j].position.y < 0) {
-                
-                // If the particle is outside the window bounds, swap and pop from vector 
-                std::swap(particles[j], particles.back());
+        API_PROFILER(PopAndSwap);
+        for (std::size_t i = 0; i < particles.size(); ++i) {
+
+            if (particles[i].position.x < 0 || particles[i].position.x > simulationWidth ||
+                particles[i].position.y > simulationHeight || particles[i].position.y < 0) {
+
+                std::swap(particles[i], particles.back());
                 particles.pop_back();
-
-                --j;
-            } else {
-                // Insert valid particle into QuadTree
-                quadTree.insert(&particles[j]);
+                --i;
             }
         }
-
     }
 
-    // Traverse quadtree to get the leaf nodes
-    quadTree.getLeafNodes(leafNodes);
+    globalCOM.x = 0;
+    globalCOM.y = 0;
+
+    {
+        API_PROFILER(InsertIntoQuadTree);
+        quadTree.insert(particles);
+    }
     
-    if (!isPaused && !particles.empty()) {
-        {
-            API_PROFILER(updateForces);
-            // This updates collision/gravity locally for each leaf node
-            this->updateForces();
-        }
+    int totalLeafNodes = 0;
+    globalCOM = quadTree.getLeafNodes(leafNodes, totalLeafNodes);
 
-        {
-            const std::size_t chunkSize = particles.size() / numThreads;
-            const std::size_t remainder = particles.size() % numThreads;
-
-            API_PROFILER(updateRest);
-
-            // Create and start the threads
-            for (int i = 0; i < numThreads; i++)
-            {
-                // Define the start and end indices for the current chunk
-                const std::size_t startIdx = i * chunkSize;
-                const std::size_t endIdx = (i==numThreads-1) ? startIdx + chunkSize + remainder : startIdx + chunkSize;
-
-                // Create a lambda function that will be executed by each thread
-                auto threadFunc = [this, startIdx, endIdx]() {
-
-                    for (std::size_t j = startIdx; j < endIdx; j++) {
-
-
-                        // First look through all non empty leaf nodes to and use gravity
-                        // COM for far away attractions
-                        for (std::size_t k = 0; k < leafNodes.size(); k++) {
-
-                            if (leafNodes[k]->empty() || leafNodes[k]->contains(particles[j].position))
-                                continue;
-
-                            const float x = leafNodes[k]->getCOM().x / leafNodes[k]->getTotalMass();
-                            const float y = leafNodes[k]->getCOM().y / leafNodes[k]->getTotalMass();
-
-                            const float distanceSquared = dot(particles[j].position - sf::Vector2f(x,y),
-                                                          particles[j].position - sf::Vector2f(x,y));
-
-                            particles[j].acceleration += (leafNodes[k]->getTotalMass() / distanceSquared) *
-                                                        BIG_G * (sf::Vector2f(x,y) - particles[j].position);
-
-                        }
-
-                        // If RMB Pressed, apply attractive force
-                        if (this->isRightButtonPressed) {
-                            attractParticleToMousePos(this->particles[j]);
-                        }
-
-                        this->particles[j].velocity += this->particles[j].acceleration * this->timeStep;
-                        this->particles[j].position += this->particles[j].velocity * this->timeStep;
-                        this->particles[j].acceleration.x = 0.0f;
-                        this->particles[j].acceleration.y = 0.0f;
-                    }
-                };
-
-                // Create a thread and pass the lambda function
-                threads.emplace_back(threadFunc);
-            }
-
-            // Wait for all threads to finish
-            for (auto& thread : threads)
-            {
-                thread.join();
-            }
-
-            threads.clear();
-        }
-    }
-
-
-    { 
-        API_PROFILER(draw); 
+    if (!isPaused) {
 
         if (!particles.empty()) {
-            if (showParticles) { 
-                sf::VertexArray points(sf::Points, particles.size());
-                for (std::size_t i = 0; i < particles.size(); i++) {
-                    // Set particle circle shape to new position
-                    particles[i].shape.setPosition(particles[i].position);
+            API_PROFILER(UpdateForces);
+            updateForces();
+        }
 
-                    // Draw the particle's shape
-                    //gameWindow->draw(particles[i].shape);
-                    points[i].position = particles[i].position;
-                    points[i].color = particles[i].shape.getFillColor();
+    }
 
-                    // Create visual for particle's velocity vector if toggled
-                    if (showVelocity) {
-                        drawParticleVelocity(particles[i]);
-                    }
-                }
+    if (!particles.empty() && showParticles) {
+
+        {
+            API_PROFILER(DrawParticles);
+            
+            sf::VertexArray particleVertices(sf::Triangles, particles.size() * 3);
+            int vi = 0;
+
+            for (std::size_t i = 0; i < particles.size(); ++i) {
+                const float center_x = particles[i].position.x;
+                const float center_y = particles[i].position.y;
+                const float y_pos = center_y - P_RADIUS_DIV_2;
+
+                // Right now to lower time for drawing function we are only drawing a triangle
+                // where the particle circle would be inscribed within the triangle. This will lead total
+                // some visual overlap close to the triangle vertices when particles are not actually overlapping,
+                // but allows us to use a vertex array of triangles with only 3 vertices per particle for a batch render
                 
-                gameWindow->draw(points);
+                // Top vertex
+                particleVertices[vi].position.x = center_x;
+                particleVertices[vi].position.y = center_y + 0.5f;
+                particleVertices[vi++].color = particles[i].color;
 
+                // Left vertex
+                particleVertices[vi].position.x = center_x - TRI_X_OFFSET;
+                particleVertices[vi].position.y = y_pos;
+                particleVertices[vi++].color = particles[i].color;
+
+                // Right vertex
+                particleVertices[vi].position.x = center_x + TRI_X_OFFSET;
+                particleVertices[vi].position.y = y_pos;
+                particleVertices[vi++].color = particles[i].color;
+               
             }
 
-
-        // Recursively draw QuadTree rectangles
-        if (showQuadTree)
-        {
-            quadTree.display(gameWindow);
+            gameWindow->draw(particleVertices);
         }
+
+        if (showVelocity) {
+            API_PROFILER(DrawVelocities);
+            drawParticleVelocity();
+        }
+
     }
 
     if (isAiming) {
         drawAimLine();
     }
 
-    // Update the particle count & mass text
+    if (showQuadTree) {
+        API_PROFILER(DrawQuadTree);
+        quadTree.display(gameWindow, totalLeafNodes);
+
+        if (leafNodes.size() != 0) {
+            sf::CircleShape circle(20.0f);
+            circle.setOrigin(circle.getRadius(), circle.getRadius());
+            circle.setPosition(globalCOM);
+            circle.setFillColor(sf::Color(255,0,0,20));
+            gameWindow->draw(circle);
+        }
+    }
+
     particleCountText.setString("Particle count: " + std::to_string(particles.size()));
     particleMassText.setString("Particle mass: " + std::to_string( int(particleMass) ));
     
-    // Draw the particle count & mass text
     gameWindow->draw(particleCountText);
     gameWindow->draw(particleMassText);
 
     if (isPaused) {
         gameWindow->draw(isPausedText);
     }
-        // Display the window
-        gameWindow->display();
-    }
+    gameWindow->display();
 }
 
 inline void ParticleSimulation::drawAimLine() 
 {	
-    // Setting text position and value for angle
-    velocityText.setPosition(initial_mousePosF.x+5, initial_mousePosF.y);
-    float t =  (initial_mousePosF.y - current_mousePosF.y) / (initial_mousePosF.x - current_mousePosF.x);
-    velocityText.setString(std::to_string( abs( ( atan(t) * 180 ) / 3.14) ));
+    velocityText.setPosition(initial_mousePosF.x+5.0f, initial_mousePosF.y);
+    float angle =  (initial_mousePosF.y - current_mousePosF.y) / (initial_mousePosF.x - current_mousePosF.x);
+    velocityText.setString(std::to_string( abs( ( atan(angle) * 180.0f ) / 3.14159f) ));
 
-    // Create VertexArray from initial to current position
     sf::VertexArray line(sf::Lines, 2);
     line[0].position = initial_mousePosF;
     line[1].position = current_mousePosF;
     line[0].color  = sf::Color(0, 255, 0, 155);
     line[1].color = sf::Color(0, 255, 0, 25);
         
-    // Draw VertexArray and text to screen
     gameWindow->draw(velocityText);
     gameWindow->draw(line);
 }
 
-inline void ParticleSimulation::drawParticleVelocity(Particle& particle) 
+inline void ParticleSimulation::drawParticleVelocity() 
 {
-    // Create VertexArray from particle position to velocity vector of particle
-    sf::VertexArray line(sf::Lines, 2);
-    line[1].position.x = (particle.position.x + particle.velocity.x/50);
-    line[1].position.y = (particle.position.y + particle.velocity.y/50);
-    line[0].position = particle.position;
-    line[0].color  = sf::Color(0,0,255,255);
-    line[1].color = sf::Color(255,0,0,0);
+    sf::VertexArray lines(sf::Lines, particles.size()*2);
+    
+    int pIdx = 0;
+    for (std::size_t i = 0; i < particles.size()*2; i+=2) {
+        
+        lines[i+1].position.x = (particles[pIdx].position.x + particles[pIdx].velocity.x/450);
+        lines[i+1].position.y = (particles[pIdx].position.y + particles[pIdx].velocity.y/450);
+        lines[i].position = particles[pIdx].position;
+        lines[i].color  = sf::Color(0,0,255,85);
+        lines[i+1].color = sf::Color(255,0,0,0);
+
+        pIdx++;
+
+    }
    
-    // Draw the velocity vector
-    gameWindow->draw(line);
+    gameWindow->draw(lines);
 }
 
-inline void ParticleSimulation::attractParticleToMousePos(Particle& particle) 
+static inline void attractParticleToMousePos(Particle& particle, sf::Vector2f& current_mousePosF) 
 {
-    //particle.velocity -= sf::Vector2f(0.35f * (particle.position.x - current_mousePosF.x),
-    //                            0.35f * (particle.position.y - current_mousePosF.y));
+    particle.velocity -= sf::Vector2f(0.35f * (particle.position.x - current_mousePosF.x),
+                                0.35f * (particle.position.y - current_mousePosF.y));
 
-    //This provides a much softer attraction with RMB
-    particle.acceleration -= sf::Vector2f(75.0f * (particle.position.x - current_mousePosF.x),
-                                75.0f * (particle.position.y - current_mousePosF.y));
+    //particle.acceleration -= sf::Vector2f(150.0f * (particle.position.x - current_mousePosF.x),
+    //                            150.0f * (particle.position.y - current_mousePosF.y));
+}
+
+static inline void attractParticleToMousePos(Particle* particle, sf::Vector2f& current_mousePosF) 
+{
+    particle->velocity -= sf::Vector2f(0.35f * (particle->position.x - current_mousePosF.x),
+                                0.35f * (particle->position.y - current_mousePosF.y));
+
+    //particle->acceleration -= sf::Vector2f(150.0f * (particle->position.x - current_mousePosF.x),
+    //                            150.0f * (particle->position.y - current_mousePosF.y));
 }
 
 void ParticleSimulation::updateForces()
 {
+    int n_threads = numThreads;
+    
+    if  (leafNodes.size() < static_cast<std::size_t>(numThreads)) {
+        numThreads = leafNodes.size();
+    }
 
     const std::size_t chunkSize = leafNodes.size() / numThreads;
     const std::size_t remainder = leafNodes.size() % numThreads;
+
 
     for (int i = 0; i < numThreads; i++) {
         const std::size_t startIdx = i * chunkSize;
         const std::size_t endIdx = (i==numThreads-1) ? startIdx + chunkSize + remainder : startIdx + chunkSize;
         
-        // Create a lambda function that will be executed by each thread
+
         auto threadFunc = [this, startIdx, endIdx]() {
+
+            const std::vector<QuadTree::ParticleElementNode>& particleElementNodeVec = quadTree.getParticleElementNodeVec();
+
             for (std::size_t j = startIdx; j < endIdx; j++) {
 
-                if (leafNodes[j]->empty())
+                if (quadTree.empty(leafNodes[j]))
                     continue;
 
-                for (Particle* particle : leafNodes[j]->getParticleVec()) {
-                    for (Particle* other : leafNodes[j]->getParticleVec()) {
+                const int first_element_idx = leafNodes[j]->firstElement;
 
-                        if (other == particle)
+                for (int i = first_element_idx; i != -1; i = particleElementNodeVec[i].next_particle) {
+
+                    int particle_index = particleElementNodeVec[i].particle_index;
+                    Particle& particle = particles[particle_index];
+
+                    for (int j = first_element_idx; j != -1; j = particleElementNodeVec[j].next_particle) {
+                        int other_index = particleElementNodeVec[j].particle_index;
+                        Particle& other = particles[other_index];
+
+                        if (&other == &particle) {
                             continue;
+                        }
 
-                        const float distanceSquared = dot(particle->position - other->position,
-                                                    particle->position - other->position);
+                        const float distanceSquared = dot(particle.position - other.position,
+                                                    particle.position - other.position);
 
-                        if (distanceSquared == 0)
+                        if (distanceSquared < 0.01f) {
                             continue;
-
-                        const float radiusSquared = (particle->radius + other->radius) *
-                                              (particle->radius + other->radius);
+                        }
+                        
+                        const float radiusSquared = 1.0f;
 
                         const bool is_colliding = (distanceSquared <= radiusSquared);
                         
                         if (is_colliding) {
-                            sf::Vector2f rHat = (other->position - particle->position) * inv_Sqrt(distanceSquared);
+                            sf::Vector2f rHat = (other.position - particle.position) * inv_Sqrt(distanceSquared);
 
-                            const float a1 = dot(particle->velocity, rHat);
-                            const float a2 = dot(other->velocity, rHat);
+                            const float a1 = dot(particle.velocity, rHat);
+                            const float a2 = dot(other.velocity, rHat);
                         
-                            const float p = 2 * particle->mass * other->mass * (a1-a2)/(particle->mass + other->mass);
+                            const float p = 2.0f * particle.mass * other.mass * (a1-a2)/(particle.mass + other.mass);
                             
-                            particle->velocity -= p/particle->mass * (rHat);
-                            other->velocity += p/other->mass * (rHat);
+                            particle.velocity -= p/particle.mass * (rHat);
+                            other.velocity += p/other.mass * (rHat);
 
                         } else {
 
-                            particle->acceleration += (other->mass / distanceSquared) * 
-                                                        BIG_G * (other->position - particle->position);
+                            particle.acceleration += (other.mass / distanceSquared) * 
+                                                        BIG_G * (other.position - particle.position);
                         }
                     }
                 }
@@ -540,22 +499,125 @@ void ParticleSimulation::updateForces()
     }
 
     threads.clear();
+
+    for (int i = 0; i < numThreads; i++) {
+        const std::size_t startIdx = i * chunkSize;
+        const std::size_t endIdx = (i==numThreads-1) ? startIdx + chunkSize + remainder : startIdx + chunkSize;
+        
+        auto threadFunc = [this, startIdx, endIdx]() {
+            sf::Color c;
+            const std::vector<QuadTree::ParticleElementNode>& particleElementNodeVec = quadTree.getParticleElementNodeVec();
+
+            for (std::size_t j = startIdx; j < endIdx; j++) {
+
+                sf::Vector2f newCOM(0,0);
+
+                int localParticleCount = leafNodes[j]->count;
+                int nonLocalParticles = (particles.size() - localParticleCount);
+
+                if (nonLocalParticles != 0) {
+
+                    newCOM.x = static_cast<float>(particles.size() * globalCOM.x - quadTree.getCOM(leafNodes[j]).x) /
+                                    static_cast<float>(particles.size() - localParticleCount);
+                    newCOM.y = static_cast<float>(particles.size() * globalCOM.y - quadTree.getCOM(leafNodes[j]).y) /
+                                    static_cast<float>(particles.size() - localParticleCount);
+                }
+
+                for (int i = leafNodes[j]->firstElement; i != -1; i = particleElementNodeVec[i].next_particle) {
+
+                    int particle_index = particleElementNodeVec[i].particle_index;
+                    Particle& particle = particles[particle_index];
+
+                    if (nonLocalParticles != 0) {
+                        const float distanceSquared = dot(particle.position - newCOM,
+                                                      particle.position - newCOM);
+
+                        particle.acceleration += (nonLocalParticles / distanceSquared) * BIG_G *
+                                                        (newCOM - particle.position);
+                    }
+
+                    if (isRightButtonPressed) {
+                        attractParticleToMousePos(particle, current_mousePosF);
+                    }
+
+                    particle.velocity += particle.acceleration * timeStep;
+                    particle.position += particle.velocity * timeStep;
+                    
+                    float vel = std::sqrt(particle.velocity.x * particle.velocity.x +
+                                particle.velocity.y * particle.velocity.y);
+
+
+                    float maxVel = 3000.0f;
+
+                    if (vel > maxVel) vel = maxVel;
+                    
+                    float p = vel / maxVel;
+
+                    c.r = static_cast<uint8_t>(15.0f + (240.0f * p));
+                    c.g = 0;
+                    c.b = static_cast<uint8_t>(240.0f * (1.0f-p));
+                    c.a = static_cast<uint8_t>(30.0f + (225.0f * p));
+
+                    particle.color = c;
+
+                    particle.acceleration.x = 0.0f;
+                    particle.acceleration.y = 0.0f;
+
+                }
+            }
+        };
+
+        threads.emplace_back(threadFunc);
+    }
+
+    for (auto& thread : threads)
+    {
+        thread.join();
+    }
+
+    threads.clear();
+
+    numThreads = n_threads;
+}
+
+void ParticleSimulation::addSierpinskiTriangleParticleChunk(const int x, const int y, const int size, const int depth)
+{
+    if (depth == 0) {
+        particles.emplace_back(Particle(sf::Vector2f(x,y), sf::Vector2f(0,0), particleMass));
+    } else {
+        const int halfSize = size/2;
+
+        addSierpinskiTriangleParticleChunk(x, y, halfSize, depth - 1);
+        addSierpinskiTriangleParticleChunk(x + halfSize, y, halfSize, depth - 1);
+        addSierpinskiTriangleParticleChunk(x + halfSize / 2, y + halfSize, halfSize, depth - 1);
+
+    }
+}
+
+void ParticleSimulation::addCheckeredParticleChunk()
+{
+    for (int i = simulationWidth/3; i < ((2*simulationWidth)/3); ++i) {
+        for (int j = simulationHeight/3; j < ((2*simulationHeight)/3); ++j) {
+            if((i/7) % 4 == (j/5) % 4)
+                particles.emplace_back(Particle(sf::Vector2f(i,j), sf::Vector2f(0,0), particleMass));
+        }
+    }
 }
 
 void ParticleSimulation::addParticleDiagonal(int tiles, int particleNum)
 {
-    int col = sqrt(particleNum/tiles);
-    int row = col;
+    const int col = sqrt(particleNum/tiles);
+    const int row = col;
 
-    float smallWidth = static_cast<float>(windowWidth) / tiles;
-    float smallHeight = static_cast<float>(windowHeight) / tiles;
+    const float smallWidth = static_cast<float>(simulationWidth) / tiles;
+    const float smallHeight = static_cast<float>(simulationHeight) / tiles;
 
     for (int i = 0; i < tiles; i++) {
         for (int j = 0; j < col; j++) {
             for (int k = 0; k < row; k++ ) {
-                float x = (j * smallWidth / col) + smallWidth * i;
-                float y = (k * smallHeight / row) + smallHeight * i;
-                particles.emplace_back(Particle(sf::Vector2f(x,y), sf::Vector2f(0,0), 1, gen , dis));
+                const float x = (j * smallWidth / col) + smallWidth * i;
+                const float y = (k * smallHeight / row) + smallHeight * i;
+                particles.emplace_back(Particle(sf::Vector2f(x,y), sf::Vector2f(0,0), particleMass));
             }
         }
     }
@@ -563,19 +625,19 @@ void ParticleSimulation::addParticleDiagonal(int tiles, int particleNum)
 
 void ParticleSimulation::addParticleDiagonal2(int tiles, int particleNum)
 {
-    int col = sqrt(particleNum / tiles);
-    int row = col;
+    const int col = sqrt(particleNum / tiles);
+    const int row = col;
 
-    float smallWidth = static_cast<float>(windowWidth) / tiles;
-    float smallHeight = static_cast<float>(windowHeight) / tiles;
+    const float smallWidth = static_cast<float>(simulationWidth) / tiles;
+    const float smallHeight = static_cast<float>(simulationHeight) / tiles;
 
     for (int i = 0; i < tiles; i++) {
         for (int j = 0; j < col; j++) {
             for (int k = 0; k < row; k++) {
-                float x = static_cast<float>(windowWidth) - ((j * smallWidth / col) + smallWidth * i);
-                float y = (k * smallHeight / row) + smallHeight * i;
+                const float x = static_cast<float>(simulationWidth) - ((j * smallWidth / col) + smallWidth * i);
+                const float y = (k * smallHeight / row) + smallHeight * i;
 
-                particles.emplace_back(Particle(sf::Vector2f(x, y), sf::Vector2f(0, 0), 1, gen, dis));
+                particles.emplace_back(Particle(sf::Vector2f(x, y), sf::Vector2f(0, 0), particleMass));
             }
         }
     }

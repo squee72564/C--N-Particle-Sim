@@ -3,37 +3,55 @@
 Particle::Particle()
     : position(sf::Vector2f(0,0)),
       velocity(sf::Vector2f(0,0)),
-      mass(1)
-{
-    radius = 1;
-    shape.setRadius(radius); // Set the radius of the circle to the mass of the particle
-    shape.setFillColor(sf::Color(255, 255, 255)); //white
-    shape.setOrigin(mass, mass); // Set the origin of the circle to its center
-    acceleration = sf::Vector2f(0,0);
-}
+      acceleration(sf::Vector2f(0,0)),
+      color(sf::Color(15,0,240,30)),
+      mass(1) {}
 
-Particle::Particle(const sf::Vector2f pos, const sf::Vector2f vel, float m, std::mt19937& gen, std::uniform_int_distribution<>& dis)
+Particle::Particle(const sf::Vector2f& pos, const sf::Vector2f& vel, float m)
     : position(pos),
       velocity(vel),
-      mass(m)
-{
-    radius = m;
-    shape.setRadius(radius); // Set the radius of the circle to the mass of the particle
-    shape.setFillColor(sf::Color(dis(gen), dis(gen), dis(gen))); //multicolored
-    shape.setOrigin(mass, mass); // Set the origin of the circle to its center
-    acceleration = sf::Vector2f(0,0);
-}
+      acceleration(sf::Vector2f(0,0)),
+      color(sf::Color(15,0,240,30)),
+      mass(m) {}
 
 Particle::Particle(const Particle& particle)
     : position(particle.position),
       velocity(particle.velocity),
-      mass(particle.mass)
+      acceleration(particle.acceleration),
+      color(particle.color),
+      mass(particle.mass) {}
+
+Particle::Particle(Particle&& particle)
+    : position(std::move(particle.position)),
+      velocity(std::move(particle.velocity)),
+      acceleration(std::move(particle.acceleration)),
+      color(std::move(particle.color)),
+      mass(particle.mass) {}
+
+Particle& Particle::operator=(const Particle& particle)
 {
-    radius = mass;
-    shape.setRadius(radius); // Set the radius of the circle to the mass of the particle
-    shape.setFillColor(particle.shape.getFillColor()); //multicolored
-    shape.setOrigin(mass, mass); // Set the origin of the circle to its center
-    acceleration = particle.acceleration;
+    if (this != &particle) {
+        position = particle.position;
+        velocity = particle.velocity;
+        acceleration = particle.acceleration;
+        color = particle.color;
+        mass = particle.mass;
+    }
+    
+    return *this;
+}
+
+Particle& Particle::operator=(Particle&& particle)
+{
+    if (this != &particle) {
+        position = std::move(particle.position);
+        velocity = std::move(particle.velocity);
+        acceleration = std::move(particle.acceleration);
+        color = std::move(particle.color);
+        mass = particle.mass;
+    }
+    
+    return *this;
 }
 
 Particle::~Particle() {}
