@@ -16,8 +16,8 @@ private:
     int treeMaxDepth;
 
     // Game Window
-    int windowWidth;
-    int windowHeight;
+    int simulationWidth;
+    int simulationHeight;
 
     sf::View gameView;
 
@@ -60,7 +60,9 @@ private:
     QuadTree quadTree;
 
 public:
-    ParticleSimulation(sf::RenderWindow &window,
+    ParticleSimulation(int simulationWidth,
+                       int simulationHeight,
+                       sf::RenderWindow &window,
                        int numThreads,
                        float dt,
                        const sf::Vector2f& g,
