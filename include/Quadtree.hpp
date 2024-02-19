@@ -12,17 +12,20 @@ class QuadTree {
 
 public:
   struct Node {
-    bool isLeaf;
-
+    //bool isLeaf;
+    int firstElement; // Index of first element if leaf and not empty, else -1
+    int count;        // Stores number of elements in leaf of -1 if not leaf
     sf::Vector2f com;
     float totalMass;
 
-    std::vector<Particle*> m_index;
+    //std::vector<Particle*> m_index;
   };
 
   struct ParticleElementNode {
     int next_particle;
     int particle_index;
+
+    ParticleElementNode(int next, int idx) : next_particle(next), particle_index(idx) {};
   };
 
 private:
@@ -44,12 +47,14 @@ public:
 
   void initTree();
   void display(sf::RenderWindow* gameWindow, int totalLeafNodes);
-  void insert(Particle* particle);
-  void split(const int parentIdx, const sf::Vector2f& childSize, const sf::Vector2f* childOffsets);
+  void insert(std::vector<Particle>& particles);
+  void split(const int parentIdx, const sf::Vector2f& childSize, const sf::Vector2f* childOffsets, std::vector<Particle>& particles);
   void deleteTree();
   sf::Vector2f getLeafNodes(std::vector<QuadTree::Node*>& vec, int& totalLeafNodes);
   bool empty(const QuadTree::Node*);
-  const std::vector<Particle*>& getParticleVec(const QuadTree::Node*);
+
+  const std::vector<QuadTree::ParticleElementNode>& getParticleElementNodeVec();
+
   const sf::Vector2f& getCOM(const QuadTree::Node*);
   int getTotalMass(const QuadTree::Node*);
   int getMaxDepth();
