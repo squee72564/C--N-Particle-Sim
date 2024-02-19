@@ -22,7 +22,9 @@ static inline float inv_Sqrt(float number)
     return 1.0f / squareRoot;
 }
 
-ParticleSimulation::ParticleSimulation(sf::RenderWindow &window,
+ParticleSimulation::ParticleSimulation(int simulationWidth,
+                                       int simulationHeight,
+                                       sf::RenderWindow &window,
                                        int numThreads,
                                        float dt,
                                        const sf::Vector2f& g,
@@ -30,9 +32,9 @@ ParticleSimulation::ParticleSimulation(sf::RenderWindow &window,
                                        int nodeCap)
   : numThreads(numThreads),
     treeMaxDepth(treeDepth),
-    windowWidth(window.getSize().x),
-    windowHeight(window.getSize().y),
-    gameView(sf::Vector2f(windowWidth/2, windowHeight/2), sf::Vector2f(windowWidth, windowHeight)),
+    simulationWidth(simulationWidth),
+    simulationHeight(simulationHeight),
+    gameView(sf::Vector2f(window.getSize().x/2, window.getSize().y/2), sf::Vector2f(window.getSize().x, window.getSize().y)),
     gen(std::mt19937(rd())),
     dis(std::uniform_int_distribution<>(0, 255)),
     timeStep(dt),
@@ -52,7 +54,7 @@ ParticleSimulation::ParticleSimulation(sf::RenderWindow &window,
     threads(),
     leafNodes(),
     particles(),
-    quadTree(QuadTree(windowWidth, windowHeight, treeDepth, nodeCap))
+    quadTree(QuadTree(simulationWidth, simulationHeight, treeDepth, nodeCap))
 {
     gameWindow = &window;
     gameWindow->setView(gameView);
@@ -103,12 +105,12 @@ ParticleSimulation::~ParticleSimulation()
 
 void ParticleSimulation::run()
 {
-    addParticleDiagonal(12, 30000);
-    addParticleDiagonal2(12, 30000);
+    //addParticleDiagonal(12, 30000);
+    //addParticleDiagonal2(12, 30000);
     
     //addCheckeredParticleChunk();
 
-    //addSierpinskiTriangleParticleChunk((windowWidth-windowHeight)/2, 0, windowHeight, 11);
+    addSierpinskiTriangleParticleChunk((simulationWidth-simulationHeight)/2, 0, simulationHeight, 10);
     
     while (gameWindow->isOpen())
     {
@@ -253,8 +255,8 @@ void ParticleSimulation::updateAndDraw()
         API_PROFILER(PopAndSwap);
         for (std::size_t i = 0; i < particles.size(); ++i) {
 
-            if (particles[i].position.x < 0 || particles[i].position.x > windowWidth ||
-                particles[i].position.y > windowHeight || particles[i].position.y < 0) {
+            if (particles[i].position.x < 0 || particles[i].position.x > simulationWidth ||
+                particles[i].position.y > simulationHeight || particles[i].position.y < 0) {
 
                 std::swap(particles[i], particles.back());
                 particles.pop_back();
@@ -749,8 +751,8 @@ void ParticleSimulation::addSierpinskiTriangleParticleChunk(const int x, const i
 
 void ParticleSimulation::addCheckeredParticleChunk()
 {
-    for (int i = windowWidth/3; i < ((2*windowWidth)/3); ++i) {
-        for (int j = windowHeight/3; j < ((2*windowHeight)/3); ++j) {
+    for (int i = simulationWidth/3; i < ((2*simulationWidth)/3); ++i) {
+        for (int j = simulationHeight/3; j < ((2*simulationHeight)/3); ++j) {
             if((i/7) % 4 == (j/5) % 4)
                 particles.emplace_back(Particle(sf::Vector2f(i,j), sf::Vector2f(0,0), particleMass));
         }
@@ -762,8 +764,8 @@ void ParticleSimulation::addParticleDiagonal(int tiles, int particleNum)
     const int col = sqrt(particleNum/tiles);
     const int row = col;
 
-    const float smallWidth = static_cast<float>(windowWidth) / tiles;
-    const float smallHeight = static_cast<float>(windowHeight) / tiles;
+    const float smallWidth = static_cast<float>(simulationWidth) / tiles;
+    const float smallHeight = static_cast<float>(simulationHeight) / tiles;
 
     for (int i = 0; i < tiles; i++) {
         for (int j = 0; j < col; j++) {
@@ -781,13 +783,13 @@ void ParticleSimulation::addParticleDiagonal2(int tiles, int particleNum)
     const int col = sqrt(particleNum / tiles);
     const int row = col;
 
-    const float smallWidth = static_cast<float>(windowWidth) / tiles;
-    const float smallHeight = static_cast<float>(windowHeight) / tiles;
+    const float smallWidth = static_cast<float>(simulationWidth) / tiles;
+    const float smallHeight = static_cast<float>(simulationHeight) / tiles;
 
     for (int i = 0; i < tiles; i++) {
         for (int j = 0; j < col; j++) {
             for (int k = 0; k < row; k++) {
-                const float x = static_cast<float>(windowWidth) - ((j * smallWidth / col) + smallWidth * i);
+                const float x = static_cast<float>(simulationWidth) - ((j * smallWidth / col) + smallWidth * i);
                 const float y = (k * smallHeight / row) + smallHeight * i;
 
                 particles.emplace_back(Particle(sf::Vector2f(x, y), sf::Vector2f(0, 0), particleMass));
