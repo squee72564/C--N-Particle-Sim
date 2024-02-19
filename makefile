@@ -23,7 +23,7 @@ OUTPUT = main
 all: $(OUTPUT)
 
 run: $(OUTPUT)
-	./$(OUTPUT) 10 8 64
+	./$(OUTPUT) 10 8 64 2000 2000
 
 $(OUTPUT): $(SOURCES)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDES) $(LIB_DIRS) $(LIBS)
