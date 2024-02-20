@@ -170,10 +170,10 @@ void QuadTree::display(sf::RenderWindow* gameWindow, int totalLeafNodes)
     long vi = 0;
 
     const sf::Color colors[4] = {
-        sf::Color(0,0,204,12),
-        sf::Color(102,0,204,12),
-        sf::Color(0,102,204,12),
-        sf::Color(255,0,127,12),
+        sf::Color(0,0,204,35),
+        sf::Color(102,0,204,35),
+        sf::Color(0,102,204,35),
+        sf::Color(255,0,127,35),
     };
 
     std::pair<int, NodeData> array[32]; // <idx, nodeInfo>
