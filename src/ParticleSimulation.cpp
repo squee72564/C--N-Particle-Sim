@@ -109,7 +109,7 @@ void ParticleSimulation::run()
     
     //addCheckeredParticleChunk();
 
-    addSierpinskiTriangleParticleChunk((simulationWidth-simulationHeight)/2, 0, simulationHeight, 11);
+    addSierpinskiTriangleParticleChunk((simulationWidth-simulationHeight)/2, 0, simulationHeight, 10);
     
     while (gameWindow->isOpen())
     {
