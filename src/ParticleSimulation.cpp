@@ -48,6 +48,7 @@ ParticleSimulation::ParticleSimulation(int simulationWidth,
     isMiddleButtonPressed(false),
     isAiming(false),
     showVelocity(false),
+    showQuadTree(true),
     showParticles(true),
     isPaused(true),
     font(),
@@ -436,9 +437,6 @@ void ParticleSimulation::updateForces()
             const std::vector<QuadTree::ParticleElementNode>& particleElementNodeVec = quadTree.getParticleElementNodeVec();
 
             for (std::size_t j = startIdx; j < endIdx; j++) {
-
-                if (quadTree.empty(leafNodes[j]))
-                    continue;
 
                 const int first_element_idx = leafNodes[j]->firstElement;
 
