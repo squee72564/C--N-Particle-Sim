@@ -20,7 +20,11 @@ This particle simulator lets you place particles in the simulation space, and wi
 ## Building and Running the Project:
 Use the CMakeLists.txt in the root directory of this project to build the application, as it allows for platform independent building. It is a sfml cmake template that will pull in the required SFML files for your OS [(see more here)](https://github.com/SFML/cmake-sfml-project/tree/master).
 
-1. Use CMake from the command line to build the project:
+1. Dependencies:
+	* [Git](https://git-scm.com/downloads)
+	* [Cmake](https://cmake.org/download/)
+	
+2. Use CMake from the command line to build the project:
 
 	For a single-configuration generator (typically the case on Linux and macOS):
 
@@ -56,8 +60,8 @@ Use the CMakeLists.txt in the root directory of this project to build the applic
 		cmake -S . -B build -G "MinGW Makefiles"
 		cmake --build build --config Release
 		```
-2. Navigate to the ./build/bin/ directory that was created.
-3. Within ./build/bin/ will be `main.exe` which is the executable for the program. To start the program run the executable with the following command line arguments:
+3. Navigate to the ./build/bin/ directory that was created.
+4. Within ./build/bin/ will be `main.exe` which is the executable for the program. To start the program run the executable with the following command line arguments:
 	*  `.\build\bin\main.exe <num threads> <tree max depth> <tree node capacity> <sim width> <sim height>`
 	
 	* i.e. : `.\build\bin\main.exe 8 8 64 2000 2000`
