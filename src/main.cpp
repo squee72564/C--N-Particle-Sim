@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
         simulation_width = std::atoi(argv[4]);
         simulation_height = std::atoi(argv[5]);
 
-        if (max_depth > 8) max_depth = 8;
+        if (max_depth > 9) max_depth = 9;
 
 
         if (!num_threads || !max_depth || !cap || !simulation_width || !simulation_height) {

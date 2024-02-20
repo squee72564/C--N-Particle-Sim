@@ -113,7 +113,7 @@ QuadTree::~QuadTree()
 
 void QuadTree::initTree()
 {
-    std::pair<int, NodeData> array[32]; // <idx, nodeInfo>
+    std::pair<int, NodeData> array[40]; // <idx, nodeInfo>
     int top = 0;
 
     NodeData node;
@@ -176,7 +176,7 @@ void QuadTree::display(sf::RenderWindow* gameWindow, int totalLeafNodes)
         sf::Color(255,0,127,35),
     };
 
-    std::pair<int, NodeData> array[32]; // <idx, nodeInfo>
+    std::pair<int, NodeData> array[40]; // <idx, nodeInfo>
 
     int top = 0;
     
@@ -245,7 +245,7 @@ void QuadTree::insert(std::vector<Particle>& particles)
 
     for (std::size_t i = 0; i < particles.size(); ++i) {
         
-        std::pair<int, NodeData> array[32]; // <idx, nodeInfo>
+        std::pair<int, NodeData> array[40]; // <idx, nodeInfo>
 
         int top = 0;
         
@@ -376,7 +376,7 @@ sf::Vector2f QuadTree::getLeafNodes(std::vector<QuadTree::Node*>& vec, int& tota
     sf::Vector2f globalCOM(0,0);
     float _totalMass = 0;
 
-    int array[32];
+    int array[40];
 
     int top = 0;
     array[top++] = 0;
