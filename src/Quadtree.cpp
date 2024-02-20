@@ -245,7 +245,6 @@ void QuadTree::insert(std::vector<Particle>& particles)
 
     for (std::size_t i = 0; i < particles.size(); ++i) {
         
-        // VLA IS BAD AND NOT ALLOWED BY C++ STD BUT IS A GCC EXTENSIONS 
         std::pair<int, NodeData> array[32]; // <idx, nodeInfo>
 
         int top = 0;

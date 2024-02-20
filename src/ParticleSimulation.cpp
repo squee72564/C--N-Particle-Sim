@@ -104,12 +104,9 @@ ParticleSimulation::~ParticleSimulation()
 
 void ParticleSimulation::run()
 {
-    //addParticleDiagonal(12, 30000);
-    //addParticleDiagonal2(12, 30000);
-    
-    //addCheckeredParticleChunk();
+    addCheckeredParticleChunk();
 
-    addSierpinskiTriangleParticleChunk((simulationWidth-simulationHeight)/2, 0, simulationHeight, 10);
+    //addSierpinskiTriangleParticleChunk((simulationWidth-simulationHeight)/2, 0, simulationHeight, 10);
     
     while (gameWindow->isOpen())
     {
@@ -598,7 +595,7 @@ void ParticleSimulation::addCheckeredParticleChunk()
 {
     for (int i = simulationWidth/3; i < ((2*simulationWidth)/3); ++i) {
         for (int j = simulationHeight/3; j < ((2*simulationHeight)/3); ++j) {
-            if((i/7) % 4 == (j/5) % 4)
+            if((i/7) % 6 == (j/5) % 6)
                 particles.emplace_back(Particle(sf::Vector2f(i,j), sf::Vector2f(0,0), particleMass));
         }
     }
