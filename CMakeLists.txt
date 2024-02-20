@@ -16,7 +16,6 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 
 add_executable(main src/main.cpp src/Particle.cpp src/ParticleSimulation.cpp src/QuadTree.cpp)
 
-target_compile_options(main PRIVATE -Wall -Wextra -Werror -std=c++17 -O3)
 target_link_libraries(main PRIVATE sfml-graphics)
 target_compile_features(main PRIVATE cxx_std_17)
 

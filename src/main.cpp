@@ -29,6 +29,8 @@ int main(int argc, char* argv[])
         simulation_width = std::atoi(argv[4]);
         simulation_height = std::atoi(argv[5]);
 
+        if (max_depth > 8) max_depth = 8;
+
 
         if (!num_threads || !max_depth || !cap || !simulation_width || !simulation_height) {
         std::cout << "Usage: " << argv[0] << " <num threads> <tree max depth> <tree node capacity> <sim width> <sim height>\n";

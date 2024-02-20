@@ -113,7 +113,7 @@ QuadTree::~QuadTree()
 
 void QuadTree::initTree()
 {
-    std::pair<int, NodeData> array[(treeMaxDepth * 4)]; // <idx, nodeInfo>
+    std::pair<int, NodeData> array[32]; // <idx, nodeInfo>
     int top = 0;
 
     NodeData node;
@@ -176,7 +176,7 @@ void QuadTree::display(sf::RenderWindow* gameWindow, int totalLeafNodes)
         sf::Color(255,0,127,12),
     };
 
-    std::pair<int, NodeData> array[(treeMaxDepth * 4) + 1]; // <idx, nodeInfo>
+    std::pair<int, NodeData> array[32]; // <idx, nodeInfo>
 
     int top = 0;
     
@@ -246,7 +246,7 @@ void QuadTree::insert(std::vector<Particle>& particles)
     for (std::size_t i = 0; i < particles.size(); ++i) {
         
         // VLA IS BAD AND NOT ALLOWED BY C++ STD BUT IS A GCC EXTENSIONS 
-        std::pair<int, NodeData> array[(treeMaxDepth * 4) + 1]; // <idx, nodeInfo>
+        std::pair<int, NodeData> array[32]; // <idx, nodeInfo>
 
         int top = 0;
         
@@ -377,7 +377,7 @@ sf::Vector2f QuadTree::getLeafNodes(std::vector<QuadTree::Node*>& vec, int& tota
     sf::Vector2f globalCOM(0,0);
     float _totalMass = 0;
 
-    int array[(treeMaxDepth * 4) + 1];
+    int array[32];
 
     int top = 0;
     array[top++] = 0;
