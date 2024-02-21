@@ -10,7 +10,20 @@ static inline int calculateTotalNodes(const int depth) {
     return total;
 }
 
-static QuadTree::Node createNode() {
+static inline const QuadTree::Node createNode_c() {
+    QuadTree::Node ret;
+    
+    ret.firstElement = -1;
+    ret.count = 0;
+
+    ret.com.x = 0;
+    ret.com.y = 0;
+    ret.totalMass = 0;
+
+    return ret;
+}
+
+static inline QuadTree::Node createNode() {
     QuadTree::Node ret;
     
     ret.firstElement = -1;
@@ -53,7 +66,6 @@ QuadTree::QuadTree(const int w, const int h, const int maxDepth, const int capac
     int reserved = calculateTotalNodes(maxDepth);
     quadTreeNodes = std::vector<QuadTree::Node>(reserved, createNode());
     
-    initTree();
     std::cout << "Tree initialized with " << quadTreeNodes.size() << " nodes.\n";
 }
 
@@ -111,58 +123,6 @@ QuadTree::~QuadTree()
     quadTreeNodes.clear();
 }
 
-void QuadTree::initTree()
-{
-    std::pair<int, NodeData> array[40]; // <idx, nodeInfo>
-    int top = 0;
-
-    NodeData node;
-    node.depth = 0;
-    node.p = sf::Vector2f(0,0);
-    node.s = sf::Vector2f(w,h);
-    
-    std::pair<int, NodeData> nodePair = std::make_pair(0,node);
-
-    array[top++] = nodePair;
-
-    quadTreeNodes[0] = createNode();
-
-    while (top > 0) {
-        const int currIdx = array[--top].first;
-        const int currDepth = array[top].second.depth;
-        const sf::Vector2f currP = array[top].second.p;
-        const sf::Vector2f currS = array[top].second.s;
-        
-        if (currDepth >= treeMaxDepth)
-        {
-            continue;
-        }
-
-        const sf::Vector2f cSize(currS.x / 2.0f, currS.y / 2.0f);
-        const sf::Vector2f offsets[4] = {
-            currP,
-            sf::Vector2f(currP.x + cSize.x, currP.y), 
-            sf::Vector2f(currP.x, currP.y + cSize.y), 
-            sf::Vector2f(currP.x + cSize.x, currP.y + cSize.y), 
-        };
-        
-        for (int i = 1; i <= 4; i++) {
-            const int child_idx = 4 * currIdx + i;
-
-            quadTreeNodes[child_idx] = createNode();
-
-            node = {currDepth+1, offsets[i-1], cSize};
-
-            nodePair.first = child_idx;
-            nodePair.second = node;
-
-            array[top++] = nodePair;
-        }
-
-    }
-}
-
-
 void QuadTree::display(sf::RenderWindow* gameWindow, int totalLeafNodes)
 {
     const int n = (totalLeafNodes * 8); 
@@ -217,7 +177,7 @@ void QuadTree::display(sf::RenderWindow* gameWindow, int totalLeafNodes)
 
         } else {
 
-            const sf::Vector2f cSize(currS.x / 2.0f, currS.y / 2.0f);
+            const sf::Vector2f cSize(currS.x * 0.5f, currS.y * 0.5f);
             const sf::Vector2f offsets[4] = {
                 currP,
                 sf::Vector2f(currP.x + cSize.x, currP.y), 
@@ -266,7 +226,7 @@ void QuadTree::insert(std::vector<Particle>& particles)
 
             QuadTree::Node& currNode = quadTreeNodes[currIdx];
 
-            const sf::Vector2f cSize(currS.x / 2.0f, currS.y / 2.0f);
+            const sf::Vector2f cSize(currS.x * 0.5f, currS.y * 0.5f);
             const sf::Vector2f offsets[4] = {
                 currP,
                 sf::Vector2f(currP.x + cSize.x, currP.y), 
@@ -327,7 +287,7 @@ void QuadTree::split(const int parentIdx, const sf::Vector2f& childSize, const s
         // Get the actual particle for this element node
         Particle& currParticle = particles[currElementNode.particle_index];
 
-        for (int i = 1; i <= 4; i++) {
+        for (int i = 1; i <= 4; ++i) {
             const int child_idx = 4 * parentIdx + i;
             if (sf::FloatRect(childOffsets[i-1], childSize).contains(currParticle.position)) {
                 
@@ -349,24 +309,12 @@ void QuadTree::split(const int parentIdx, const sf::Vector2f& childSize, const s
         
     // Reset Parent node and mark as branch
     parentNode.count = -1;
-    parentNode.firstElement = -1;
-    parentNode.totalMass = 0;
-    parentNode.com.x = 0;
-    parentNode.com.y = 0;
 }
 
 void QuadTree::deleteTree()
 {
-    for (std::size_t i = 0; i < quadTreeNodes.size(); ++i) {
-        
-        QuadTree::Node& currentNode = quadTreeNodes[i];
-
-        currentNode.com.x = 0;
-        currentNode.com.y = 0;
-        currentNode.totalMass = 0;
-        currentNode.count = 0;
-        currentNode.firstElement = -1;
-    }
+    const QuadTree::Node t = createNode_c();
+    std::fill(quadTreeNodes.begin(), quadTreeNodes.end(), t);
 
     particleNodes.clear(); //  Clear all particle element nodes as they will be re-inserted next frame
 }
@@ -400,7 +348,7 @@ sf::Vector2f QuadTree::getLeafNodes(std::vector<QuadTree::Node*>& vec, int& tota
             }
 
         } else {
-            for (int i = 1; i <= 4; i++) {
+            for (int i = 1; i <= 4; ++i) {
                 const int child_idx = 4 * currIdx + i;
                 array[top++] = child_idx;
             }

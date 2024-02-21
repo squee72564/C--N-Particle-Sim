@@ -42,7 +42,6 @@ public:
   QuadTree& operator=(QuadTree&& other) noexcept;
   ~QuadTree();
 
-  void initTree();
   void display(sf::RenderWindow* gameWindow, int totalLeafNodes);
   void insert(std::vector<Particle>& particles);
   void split(const int parentIdx, const sf::Vector2f& childSize, const sf::Vector2f* childOffsets, std::vector<Particle>& particles);
