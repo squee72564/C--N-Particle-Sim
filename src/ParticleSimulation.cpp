@@ -464,7 +464,7 @@ void ParticleSimulation::updateForces(float totalMass)
                         const float distanceSquared = dot(particle.position - other.position,
                                                     particle.position - other.position);
 
-                        if (distanceSquared < 0.01f) {
+                        if (distanceSquared < 0.001f) {
                             continue;
                         }
                         
@@ -477,16 +477,24 @@ void ParticleSimulation::updateForces(float totalMass)
 
                             const float a1 = dot(particle.velocity, rHat);
                             const float a2 = dot(other.velocity, rHat);
-                        
-                            const float p = 2.0f * particle.mass * other.mass * (a1-a2)/(particle.mass + other.mass);
-                            
-                            particle.velocity -= p/particle.mass * (rHat);
-                            other.velocity += p/other.mass * (rHat);
+
+                            const float p = 2.0f * particle.mass * other.mass * (a1-a2) / (particle.mass + other.mass);
+
+                            particle.velocity -= p / particle.mass * rHat;
+                            other.velocity += p / other.mass * rHat;
 
                         } else {
 
-                            particle.acceleration += (other.mass / distanceSquared) * 
+                            // Softening factor to prevent infinite forces at very small distances
+                            const float epsilon = 0.0154321f;
+
+                            // Modified distance calculation to include softening factor
+                            const float softenedDistanceSquared = distanceSquared + epsilon;
+
+                            // Adjust the gravitational force calculation to include the softening factor
+                            particle.acceleration += (other.mass / softenedDistanceSquared) * 
                                                         BIG_G * (other.position - particle.position);
+
                         }
                     }
                 }
