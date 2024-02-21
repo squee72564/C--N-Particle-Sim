@@ -442,19 +442,19 @@ void ParticleSimulation::updateForces(float totalMass)
 
         auto threadFunc = [this, startIdx, endIdx]() {
 
-            const std::vector<QuadTree::ParticleElementNode>& particleElementNodeVec = quadTree.getParticleElementNodeVec();
+            const std::vector<QuadTree::ParticleElementNode>& particleElementNodes = quadTree.getParticleElementNodeVec();
 
             for (std::size_t j = startIdx; j < endIdx; j++) {
 
-                const int first_element_idx = leafNodes[j]->firstElement;
+                const int first_particle_idx = leafNodes[j]->firstParticle;
 
-                for (int i = first_element_idx; i != -1; i = particleElementNodeVec[i].next_particle) {
+                for (int i = first_particle_idx; i != -1; i = particleElementNodes[i].next_particle) {
 
-                    int particle_index = particleElementNodeVec[i].particle_index;
+                    int particle_index = particleElementNodes[i].particle_index;
                     Particle& particle = particles[particle_index];
 
-                    for (int j = first_element_idx; j != -1; j = particleElementNodeVec[j].next_particle) {
-                        int other_index = particleElementNodeVec[j].particle_index;
+                    for (int j = first_particle_idx; j != -1; j = particleElementNodes[j].next_particle) {
+                        int other_index = particleElementNodes[j].particle_index;
                         Particle& other = particles[other_index];
 
                         if (&other == &particle) {
@@ -486,7 +486,7 @@ void ParticleSimulation::updateForces(float totalMass)
                         } else {
 
                             // Softening factor to prevent infinite forces at very small distances
-                            const float epsilon = 0.0154321f;
+                            const float epsilon = 0.01f;
 
                             // Modified distance calculation to include softening factor
                             const float softenedDistanceSquared = distanceSquared + epsilon;
@@ -517,7 +517,7 @@ void ParticleSimulation::updateForces(float totalMass)
         
         auto threadFunc = [this, startIdx, endIdx, totalMass]() {
             sf::Color c;
-            const std::vector<QuadTree::ParticleElementNode>& particleElementNodeVec = quadTree.getParticleElementNodeVec();
+            const std::vector<QuadTree::ParticleElementNode>& particleElementNodes = quadTree.getParticleElementNodeVec();
 
             for (std::size_t j = startIdx; j < endIdx; j++) {
 
@@ -535,9 +535,9 @@ void ParticleSimulation::updateForces(float totalMass)
                                     static_cast<float>(nonLocalMass);
                 }
 
-                for (int i = leafNodes[j]->firstElement; i != -1; i = particleElementNodeVec[i].next_particle) {
+                for (int i = leafNodes[j]->firstParticle; i != -1; i = particleElementNodes[i].next_particle) {
 
-                    int particle_index = particleElementNodeVec[i].particle_index;
+                    int particle_index = particleElementNodes[i].particle_index;
                     Particle& particle = particles[particle_index];
 
                     if (nonLocalParticles != 0) {

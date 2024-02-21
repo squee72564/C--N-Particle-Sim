@@ -54,7 +54,7 @@ private:
     sf::Event event;
 
     std::vector<std::thread> threads;
-    std::vector<QuadTree::Node*> leafNodes;
+    std::vector<QuadTree::TreeNode*> leafNodes;
     std::vector<Particle> particles;
 
     QuadTree quadTree;
