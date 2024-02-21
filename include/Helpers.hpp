@@ -114,8 +114,6 @@ private:
     {
         T element;
         int next;
-
-        //FreeElement() {}
     };
     SmallList<FreeElement> data;
     int first_free;
