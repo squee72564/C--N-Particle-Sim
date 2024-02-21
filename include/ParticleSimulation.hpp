@@ -4,70 +4,68 @@
 #include "Particle.hpp"
 #include "QuadTree.hpp"
 #include "Profiler.hpp"
+
 #include <vector>
 #include <thread>
+#include <random>   // std::random_device
+#include <cmath>    // std::pow()
 
 class ParticleSimulation
 {
 private:
-    // Simulation threads
-    sf::RenderWindow* gameWindow;
-    int numThreads;
-    int treeMaxDepth;
+    sf::RenderWindow* game_window_;
+    int num_threads_;
+    int tree_max_depth_;
 
-    // Game Window
-    int simulationWidth;
-    int simulationHeight;
+    int simulation_width_;
+    int simulation_height_;
 
-    sf::View gameView;
+    sf::View game_view_;
+	
+    std::random_device rd_;
+    std::mt19937 gen_;
+    std::uniform_int_distribution<> dis_;
 
-    std::random_device rd;
-    std::mt19937 gen;
-    std::uniform_int_distribution<> dis;
+    float time_step_;
+    float particle_mass_;
 
-    float timeStep;
+    sf::Vector2f global_com_;
 
-    float particleMass;
+    sf::Vector2f current_mouse_pos_f_;
+    sf::Vector2f initial_mouse_pos_f_;
+    sf::Vector2f final_mouse_Pos_f;
+    sf::Vector2f scroll_mouse_pos_f_;
 
-    sf::Vector2f gravity;
-    sf::Vector2f globalCOM;
+    bool is_right_button_pressed_;
+    bool is_middle_button_pressed_;
+    bool is_aiming_;
+    bool show_velocity_;
+    bool show_quad_tree_;
+    bool show_particles_;
+    bool is_paused_;
 
-    sf::Vector2f current_mousePosF;
-    sf::Vector2f initial_mousePosF;
-    sf::Vector2f final_mousePosF;
-    sf::Vector2f scroll_mousePosF;
+    sf::Font font_;
+    sf::Text particle_count_text_;
+    sf::Text particle_mass_text_;
+    sf::Text velocity_text_;
+    sf::Text is_paused_text_;
 
-    bool isRightButtonPressed;
-    bool isMiddleButtonPressed;
-    bool isAiming;
-    bool showVelocity;
-    bool showQuadTree;
-    bool showParticles;
-    bool isPaused;
+    sf::Event event_;
 
-    sf::Font font;
-    sf::Text particleCountText;
-    sf::Text particleMassText;
-    sf::Text velocityText;
-    sf::Text isPausedText;
+    std::vector<std::thread> threads_;
+    std::vector<QuadTree::TreeNode*> quad_tree_leaf_nodes_;
+    std::vector<Particle> particles_;
 
-    sf::Event event;
-
-    std::vector<std::thread> threads;
-    std::vector<QuadTree::TreeNode*> leafNodes;
-    std::vector<Particle> particles;
-
-    QuadTree quadTree;
+    QuadTree quad_tree_;
 
 public:
-    ParticleSimulation(int simulationWidth,
-                       int simulationHeight,
+    ParticleSimulation(int simulation_width,
+                       int simulation_height,
                        sf::RenderWindow &window,
-                       int numThreads,
+                       int num_threads,
                        float dt,
-                       const sf::Vector2f& g,
-                       int treeDepth,
-                       int nodeCap);
+                       int tree_depth,
+                       int node_cap);
 
     ~ParticleSimulation();
 
@@ -78,12 +76,12 @@ public:
     inline void drawAimLine();
     inline void drawParticleVelocity();
 
-    void updateForces(float totalMass);
+    void updateForces(float total_mass);
 
     void addSierpinskiTriangleParticleChunk(int x, int y, int size, int depth);
     void addCheckeredParticleChunk();
-    void addParticleDiagonal(int tiles, int numParticles);
-    void addParticleDiagonal2(int tiles, int particleNum);
+    void addParticleDiagonal(int tiles, int num_particles);
+    void addParticleDiagonal2(int tiles, int num_particles);
 };
 
 #endif
