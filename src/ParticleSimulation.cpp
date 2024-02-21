@@ -105,9 +105,9 @@ ParticleSimulation::~ParticleSimulation()
 
 void ParticleSimulation::run()
 {
-    addCheckeredParticleChunk();
+    //addCheckeredParticleChunk();
 
-    //addSierpinskiTriangleParticleChunk((simulationWidth-simulationHeight)/2, 0, simulationHeight, 10);
+    addSierpinskiTriangleParticleChunk((simulationWidth-simulationHeight)/2, 0, simulationHeight, 10);
     
     while (gameWindow->isOpen())
     {
@@ -404,15 +404,6 @@ static inline void attractParticleToMousePos(Particle& particle, sf::Vector2f& c
 
     //particle.acceleration -= sf::Vector2f(150.0f * (particle.position.x - current_mousePosF.x),
     //                            150.0f * (particle.position.y - current_mousePosF.y));
-}
-
-static inline void attractParticleToMousePos(Particle* particle, sf::Vector2f& current_mousePosF) 
-{
-    particle->velocity -= sf::Vector2f(0.35f * (particle->position.x - current_mousePosF.x),
-                                0.35f * (particle->position.y - current_mousePosF.y));
-
-    //particle->acceleration -= sf::Vector2f(150.0f * (particle->position.x - current_mousePosF.x),
-    //                            150.0f * (particle->position.y - current_mousePosF.y));
 }
 
 void ParticleSimulation::updateForces()
