@@ -128,6 +128,18 @@ void ParticleSimulation::pollUserEvent()
                 break;
 
             case sf::Event::KeyPressed:
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+                {
+                    particleMass -= 0.1f;
+                    if (particleMass < 0.1f) particleMass = 0.1f;
+                }
+
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+                {
+                    particleMass += 0.1f;
+                    if (particleMass > 20.0f) particleMass = 20.0f;
+                }
+
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z))
                 {
                     if (quadTree.getMaxDepth() > 0) quadTree.setMaxDepth(quadTree.getMaxDepth()-1);
@@ -354,7 +366,7 @@ void ParticleSimulation::updateAndDraw()
     }
 
     particleCountText.setString("Particle count: " + std::to_string(particles.size()));
-    particleMassText.setString("Particle mass: " + std::to_string(static_cast<int>(particleMass)));
+    particleMassText.setString("Particle mass: " + std::to_string(particleMass));
 
     gameWindow->draw(particleCountText);
     gameWindow->draw(particleMassText);
