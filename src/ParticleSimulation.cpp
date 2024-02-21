@@ -106,7 +106,7 @@ void ParticleSimulation::run()
 {
     //addCheckeredParticleChunk();
 
-    addSierpinskiTriangleParticleChunk((simulationWidth-simulationHeight)/2, 0, simulationHeight, 10);
+    addSierpinskiTriangleParticleChunk((simulationWidth-simulationHeight)/2, 0, simulationHeight, 11);
     
     while (gameWindow->isOpen())
     {
@@ -279,13 +279,14 @@ void ParticleSimulation::updateAndDraw()
     }
     
     int totalLeafNodes = 0;
-    globalCOM = quadTree.getLeafNodes(leafNodes, totalLeafNodes);
+    float totalMass = 0.0f;
+    globalCOM = quadTree.getLeafNodes(leafNodes, totalLeafNodes, totalMass);
 
     if (!isPaused) {
 
         if (!particles.empty()) {
             API_PROFILER(UpdateForces);
-            updateForces();
+            updateForces(totalMass);
         }
 
     }
@@ -409,7 +410,7 @@ static inline void attractParticleToMousePos(Particle& particle, sf::Vector2f& c
     //                            150.0f * (particle.position.y - current_mousePosF.y));
 }
 
-void ParticleSimulation::updateForces()
+void ParticleSimulation::updateForces(float totalMass)
 {
     int n_threads = numThreads;
     
@@ -421,6 +422,7 @@ void ParticleSimulation::updateForces()
     const std::size_t remainder = leafNodes.size() % numThreads;
 
 
+    // Handle Particle to Particle interactions for each leaf
     for (int i = 0; i < numThreads; i++) {
         const std::size_t startIdx = i * chunkSize;
         const std::size_t endIdx = (i==numThreads-1) ? startIdx + chunkSize + remainder : startIdx + chunkSize;
@@ -493,7 +495,7 @@ void ParticleSimulation::updateForces()
         const std::size_t startIdx = i * chunkSize;
         const std::size_t endIdx = (i==numThreads-1) ? startIdx + chunkSize + remainder : startIdx + chunkSize;
         
-        auto threadFunc = [this, startIdx, endIdx]() {
+        auto threadFunc = [this, startIdx, endIdx, totalMass]() {
             sf::Color c;
             const std::vector<QuadTree::ParticleElementNode>& particleElementNodeVec = quadTree.getParticleElementNodeVec();
 
@@ -503,13 +505,14 @@ void ParticleSimulation::updateForces()
 
                 int localParticleCount = leafNodes[j]->count;
                 int nonLocalParticles = (particles.size() - localParticleCount);
+                float nonLocalMass = totalMass - quadTree.getTotalMass(leafNodes[j]);
 
                 if (nonLocalParticles != 0) {
 
-                    newCOM.x = static_cast<float>(particles.size() * globalCOM.x - quadTree.getCOM(leafNodes[j]).x) /
-                                    static_cast<float>(particles.size() - localParticleCount);
-                    newCOM.y = static_cast<float>(particles.size() * globalCOM.y - quadTree.getCOM(leafNodes[j]).y) /
-                                    static_cast<float>(particles.size() - localParticleCount);
+                    newCOM.x = static_cast<float>(totalMass * globalCOM.x - quadTree.getCOM(leafNodes[j]).x) /
+                                    static_cast<float>(nonLocalMass);
+                    newCOM.y = static_cast<float>(totalMass * globalCOM.y - quadTree.getCOM(leafNodes[j]).y) /
+                                    static_cast<float>(nonLocalMass);
                 }
 
                 for (int i = leafNodes[j]->firstElement; i != -1; i = particleElementNodeVec[i].next_particle) {
@@ -521,7 +524,7 @@ void ParticleSimulation::updateForces()
                         const float distanceSquared = dot(particle.position - newCOM,
                                                       particle.position - newCOM);
 
-                        particle.acceleration += (nonLocalParticles / distanceSquared) * BIG_G *
+                        particle.acceleration += (nonLocalMass / distanceSquared) * BIG_G *
                                                         (newCOM - particle.position);
                     }
 

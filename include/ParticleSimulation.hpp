@@ -78,7 +78,7 @@ public:
     inline void drawAimLine();
     inline void drawParticleVelocity();
 
-    void updateForces();
+    void updateForces(float totalMass);
 
     void addSierpinskiTriangleParticleChunk(int x, int y, int size, int depth);
     void addCheckeredParticleChunk();
