@@ -1,11 +1,8 @@
 #include "ParticleSimulation.hpp"
 #include <iostream>
 
-// Delta Time
+// Fixed Delta Time - we need to change this
 const float TIME_STEP = 0.000095f;
-//
-//Gravity for particles
-const sf::Vector2f grav = sf::Vector2f(0,0);
 
 // Window dimensions
 const int WINDOW_WIDTH = 1920;
@@ -15,25 +12,24 @@ int main(int argc, char* argv[])
 {
     int num_threads = 1;
     int max_depth = 8;
-    int cap = 64;
+    int node_cap = 64;
     int simulation_width = WINDOW_WIDTH;
     int simulation_height = WINDOW_HEIGHT;
 
     if (argc < 6) {
-        std::cout << "Usage: " << argv[0] << " <num threads> <tree max depth> <tree node capacity> <sim width> <sim height>\n";
+        std::cout << "Usage: " << argv[0] << " <num_threads> <tree_max_depth> <tree_node_capacity> <sim_width> <sim_height>\n";
         return 1;
     } else {
         num_threads = std::atoi(argv[1]);
         max_depth = std::atoi(argv[2]);
-        cap = std::atoi(argv[3]);
+        node_cap = std::atoi(argv[3]);
         simulation_width = std::atoi(argv[4]);
         simulation_height = std::atoi(argv[5]);
 
         if (max_depth > 10) max_depth = 10;
 
-
-        if (!num_threads || !max_depth || !cap || !simulation_width || !simulation_height) {
-        std::cout << "Usage: " << argv[0] << " <num threads> <tree max depth> <tree node capacity> <sim width> <sim height>\n";
+        if (!num_threads || !max_depth || !node_cap || !simulation_width || !simulation_height) {
+            std::cout << "Usage: " << argv[0] << " <num_threads> <tree_max_depth> <tree_node_capacity> <sim_width> <sim_height>\n";
             std::cout << "--  Please ensure valid integers are passed as arguments.\n";
             return 1;
         }
@@ -49,9 +45,8 @@ int main(int argc, char* argv[])
                                           window,
                                           num_threads,
                                           TIME_STEP,
-                                          grav,
                                           max_depth,
-                                          cap);
+                                          node_cap);
 
     std::cout << "Starting particle sim...\n";
     particleSimulation.run();
