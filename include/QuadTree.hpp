@@ -13,59 +13,64 @@ class QuadTree {
 
 public:
   struct TreeNode {
-    int firstParticle;      // Index of first element if leaf and not empty, else -1
-    int gravElement;		// index of the gravity node for this quadtree cell
+    int first_particle;      // Index of first element if leaf and not empty, else -1
+    int grav_element;		// index of the gravity node for this quadtree cell
     int count;              // Stores number of elements in leaf or -1 if it is a branch
 
-    TreeNode() : firstParticle(-1), gravElement(-1), count(0) {};
+    TreeNode() : first_particle(-1), grav_element(-1), count(0) {};
   };
 
   struct GravityElementNode {
     double com_x;
     double com_y;
-    double totalMass;
+    double total_mass;
 
     GravityElementNode() = default;
-    GravityElementNode(double com, double mass) : com_x(com), com_y(com), totalMass(mass) {};
+    GravityElementNode(double com, double mass) : com_x(com), com_y(com), total_mass(mass) {};
     ~GravityElementNode() = default;
   };
 
   struct ParticleElementNode {
-    int next_particle;
+    int next_element_index;
     int particle_index;
 
     ParticleElementNode() = default;
-    ParticleElementNode(int next, int idx) : next_particle(next), particle_index(idx) {};
+    ParticleElementNode(int next, int idx) : next_element_index(next), particle_index(idx) {};
     ~ParticleElementNode() = default;
   };
 
 private:
-  int w;
-  int h;
-  int treeMaxDepth;
-  unsigned int nodeCap;
-  std::vector<QuadTree::TreeNode> quadTreeNodes;
-  std::vector<QuadTree::ParticleElementNode> particleNodes;
-  FreeList<QuadTree::GravityElementNode> gravityNodes;
+  int w_;
+  int h_;
+  int tree_max_depth_;
+  unsigned int node_cap_;
+  std::vector<QuadTree::TreeNode> tree_nodes_;
+  std::vector<QuadTree::ParticleElementNode> particle_nodes_;
+  FreeList<QuadTree::GravityElementNode> gravity_nodes_;
 
 public:
   QuadTree();
-  QuadTree(const int w, const int h, const int maxDepth, const int capacity);
+  QuadTree(const int w, const int h, const int max_depth, const int capacity);
   QuadTree(const QuadTree& other);
   QuadTree(QuadTree&& other) noexcept;
   QuadTree& operator=(const QuadTree& other);
   QuadTree& operator=(QuadTree&& other) noexcept;
   ~QuadTree();
 
-  void display(sf::RenderWindow* gameWindow, int totalLeafNodes);
+  void display(sf::RenderWindow* game_window, int total_leaf_nodes);
   void insert(std::vector<Particle>& particles);
-  void split(const int parentIdx, const sf::Vector2f& childSize, const sf::Vector2f* childOffsets, std::vector<Particle>& particles);
+  void split(const int parent_index,
+             const sf::Vector2f& child_size,
+             const sf::Vector2f* child_offsets,
+             std::vector<Particle>& particles);
   void deleteTree();
-  sf::Vector2f getLeafNodes(std::vector<QuadTree::TreeNode*>& vec, int& totalLeafNodes, float& _totalMass);
-  bool empty(const QuadTree::TreeNode*);
+  sf::Vector2f getLeafNodes(std::vector<QuadTree::TreeNode*>& vec,
+                            int& total_leaf_nodes,
+                            float& total_mass);
+  bool empty(const QuadTree::TreeNode* node);
   const std::vector<QuadTree::ParticleElementNode>& getParticleElementNodeVec();
-  const sf::Vector2f getCOM(const QuadTree::TreeNode*);
-  int getTotalMass(const QuadTree::TreeNode*);
+  const sf::Vector2f getCOM(const QuadTree::TreeNode* node);
+  int getTotalMass(const QuadTree::TreeNode* node);
   int getMaxDepth();
   int getNodeCap();
   void setMaxDepth(int depth);
