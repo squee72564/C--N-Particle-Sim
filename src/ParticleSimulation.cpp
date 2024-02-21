@@ -34,7 +34,7 @@ ParticleSimulation::ParticleSimulation(int simulationWidth,
     treeMaxDepth(treeDepth),
     simulationWidth(simulationWidth),
     simulationHeight(simulationHeight),
-    gameView(sf::Vector2f(window.getSize().x/2, window.getSize().y/2), sf::Vector2f(window.getSize().x, window.getSize().y)),
+    gameView(sf::Vector2f(window.getSize().x/2, window.getSize().y/2), sf::Vector2f(window.getSize())),
     gen(std::mt19937(rd())),
     dis(std::uniform_int_distribution<>(0, 255)),
     timeStep(dt),
@@ -58,7 +58,6 @@ ParticleSimulation::ParticleSimulation(int simulationWidth,
     quadTree(QuadTree(simulationWidth, simulationHeight, treeDepth, nodeCap))
 {
     gameWindow = &window;
-    gameWindow->setView(gameView);
 
     font.loadFromFile("fonts/corbel.TTF");
     threads.reserve(numThreads);
@@ -235,12 +234,16 @@ DEFINE_API_PROFILER(UpdateForces);
 DEFINE_API_PROFILER(DrawParticles);
 DEFINE_API_PROFILER(DrawVelocities);
 DEFINE_API_PROFILER(DrawQuadTree);
+DEFINE_API_PROFILER(DeleteQuadTree);
 
 void ParticleSimulation::updateAndDraw()
 {
     gameWindow->clear();
 
-    quadTree.deleteTree();
+    {
+        API_PROFILER(DeleteQuadTree);
+        quadTree.deleteTree();
+    }
 
     leafNodes.clear();
 
@@ -350,8 +353,8 @@ void ParticleSimulation::updateAndDraw()
     }
 
     particleCountText.setString("Particle count: " + std::to_string(particles.size()));
-    particleMassText.setString("Particle mass: " + std::to_string( int(particleMass) ));
-    
+    particleMassText.setString("Particle mass: " + std::to_string(static_cast<int>(particleMass)));
+
     gameWindow->draw(particleCountText);
     gameWindow->draw(particleMassText);
 
