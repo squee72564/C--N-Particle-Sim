@@ -1,10 +1,10 @@
 #ifndef QUADTREE
 #define QUADTREE
 
-#include <vector>
-#include <algorithm>
-#include <functional>
-#include <utility>
+#include <vector>       // std::vector
+#include <functional>   // std::fill()
+#include <utility>      // std::exchange()
+#include <cmath>        // std::pow()
 
 #include "Particle.hpp"
 #include "Helpers.hpp"
