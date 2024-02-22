@@ -21,9 +21,9 @@ public:
   };
 
   struct GravityElementNode {
-    double com_x;
-    double com_y;
-    double total_mass;
+    float com_x;
+    float com_y;
+    float total_mass;
 
     GravityElementNode() : com_x(0.0f), com_y(0.0f), total_mass(0.0f) {}
     //GravityElementNode(double com, double mass) : com_x(com), com_y(com), total_mass(mass) {}
