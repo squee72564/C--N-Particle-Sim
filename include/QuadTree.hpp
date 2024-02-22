@@ -13,7 +13,7 @@ class QuadTree {
 
 public:
   struct TreeNode {
-    int first_particle;      // Index of first element if leaf and not empty, else -1
+    int first_particle;     // Index of first element if leaf and not empty, else -1
     int grav_element;		// index of the gravity node for this quadtree cell
     int count;              // Stores number of elements in leaf or -1 if it is a branch
 
@@ -25,8 +25,8 @@ public:
     double com_y;
     double total_mass;
 
-    GravityElementNode() = default;
-    GravityElementNode(double com, double mass) : com_x(com), com_y(com), total_mass(mass) {};
+    GravityElementNode() : com_x(0.0f), com_y(0.0f), total_mass(0.0f) {}
+    //GravityElementNode(double com, double mass) : com_x(com), com_y(com), total_mass(mass) {}
     ~GravityElementNode() = default;
   };
 

@@ -179,7 +179,7 @@ void QuadTree::insert(std::vector<Particle>& particles)
     
     // Create the first gravity node for the root, and the split function will add and remove
     // nodes as needed
-    tree_nodes_[0].grav_element = gravity_nodes_.insert(QuadTree::GravityElementNode(0.0f, 0.0f));
+    tree_nodes_[0].grav_element = gravity_nodes_.insert(QuadTree::GravityElementNode());
 
 
     for (std::size_t i = 0; i < particles.size(); ++i) {
@@ -267,7 +267,7 @@ void QuadTree::split(const int parent_index,
 
         for (int i = 1; i <= 4; ++i) {
             const int child_idx = 4 * parent_index + i;
-            tree_nodes_[child_idx].grav_element = gravity_nodes_.insert(QuadTree::GravityElementNode(0.0f, 0.0f));
+            tree_nodes_[child_idx].grav_element = gravity_nodes_.insert(QuadTree::GravityElementNode());
         }
 
         for (int i = 1; i <= 4; ++i) {
@@ -295,8 +295,7 @@ void QuadTree::split(const int parent_index,
 
 void QuadTree::deleteTree()
 {
-    const QuadTree::TreeNode t = QuadTree::TreeNode();
-    std::fill(tree_nodes_.begin(), tree_nodes_.end(), t);
+    std::fill(tree_nodes_.begin(), tree_nodes_.end(), QuadTree::TreeNode());
 
     particle_nodes_.clear(); //  Clear all particle element nodes as they will be re-inserted next frame
     gravity_nodes_.clear();
