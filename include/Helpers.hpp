@@ -114,7 +114,12 @@ private:
     {
         T element;
         int next;
+
+        FreeElement() {}
+        FreeElement(const T& e) : element(e) {}
+        FreeElement& operator=(const T& e) { new(&element) T(e); return *this; }
     };
+
     SmallList<FreeElement> data;
     int first_free;
 };
