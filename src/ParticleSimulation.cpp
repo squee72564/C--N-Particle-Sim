@@ -289,14 +289,15 @@ void ParticleSimulation::updateAndDraw()
     }
     
     int total_leaf_nodes = 0;
-    float total_mass = 0.0f;
-    global_com_ = quad_tree_.getLeafNodes(quad_tree_leaf_nodes_, total_leaf_nodes, total_mass);
+    float global_mass = 0.0f;
+
+    global_com_ = quad_tree_.getLeafNodes(quad_tree_leaf_nodes_, total_leaf_nodes, global_mass);
 
     if (!is_paused_) {
 
         if (!particles_.empty()) {
             API_PROFILER(UpdateForces);
-            updateForces(total_mass);
+            updateForces(global_mass);
         }
 
     }
@@ -417,7 +418,7 @@ static inline void attractParticleToMousePos(Particle& particle, sf::Vector2f& c
                                 0.35f * (particle.position.y - current_mouse_pos_f.y));
 }
 
-void ParticleSimulation::updateForces(float total_mass)
+void ParticleSimulation::updateForces(float global_mass)
 {
     int n_threads = num_threads_;
     
@@ -510,7 +511,7 @@ void ParticleSimulation::updateForces(float total_mass)
         const std::size_t start_index = i * chunk_size;
         const std::size_t end_index = (i==num_threads_-1) ? start_index + chunk_size + remainder : start_index + chunk_size;
         
-        auto thread_function = [this, start_index, end_index, total_mass]() {
+        auto thread_function = [this, start_index, end_index, global_mass]() {
 
             sf::Color c;
             const std::vector<QuadTree::ParticleElementNode>& particle_element_nodes = quad_tree_.getParticleElementNodeVec();
@@ -522,13 +523,14 @@ void ParticleSimulation::updateForces(float total_mass)
                 sf::Vector2f new_com(0,0);
 
                 int non_local_particle_count = (particles_.size() - curr_tree_node->count);
-                float non_local_mass = total_mass - quad_tree_.getTotalMass(curr_tree_node);
+                float non_local_mass = global_mass - quad_tree_.getNodeTotalMass(curr_tree_node);
 
                 if (non_local_particle_count != 0) {
+                    const sf::Vector2f curr_node_com = quad_tree_.getNodeCOM(curr_tree_node);
 
-                    new_com.x = static_cast<float>(total_mass * global_com_.x - quad_tree_.getCOM(curr_tree_node).x) /
+                    new_com.x = static_cast<float>(global_mass * global_com_.x - curr_node_com.x) /
                                     static_cast<float>(non_local_mass);
-                    new_com.y = static_cast<float>(total_mass * global_com_.y - quad_tree_.getCOM(curr_tree_node).y) /
+                    new_com.y = static_cast<float>(global_mass * global_com_.y - curr_node_com.y) /
                                     static_cast<float>(non_local_mass);
                 }
 
