@@ -1,14 +1,14 @@
-// ************************************************************************************
-// SmallList.hpp
-// ************************************************************************************
-#ifndef SMALL_LIST_HPP
-#define SMALL_LIST_HPP
+#ifndef HELPERS_HPP_
+#define HELPERS_HPP_
  
 #include <cstdlib>
 #include <cstring>
 #include <cassert>
 #include <vector>
  
+// ---------------------------------------------------------------------------------
+// SmallList Implementation
+// ---------------------------------------------------------------------------------
 // Stores a random-access sequence of elements similar to vector, but avoids 
 // heap allocations for small lists. T must be trivially constructible and 
 // destructible.
@@ -74,59 +74,7 @@ private:
     };
     ListData ld;
 };
- 
-/// Provides an indexed free list with constant-time removals from anywhere
-/// in the list without invalidating indices. T must be trivially constructible 
-/// and destructible.
-template <class T>
-class FreeList
-{
-public:
-    /// Creates a new free list.
-    FreeList();
- 
-    /// Inserts an element to the free list and returns an index to it.
-    int insert(const T& element);
- 
-    // Removes the nth element from the free list.
-    void erase(int n);
- 
-    // Removes all elements from the free list.
-    void clear();
- 
-    // Returns the range of valid indices.
-    int range() const;
- 
-    // Returns the nth element.
-    T& operator[](int n);
- 
-    // Returns the nth element.
-    const T& operator[](int n) const;
- 
-    // Reserves space for n elements.
-    void reserve(int n);
- 
-    // Swaps the contents of the two lists.
-    void swap(FreeList& other);
- 
-private:
-    union FreeElement
-    {
-        T element;
-        int next;
-
-        FreeElement() {}
-        FreeElement(const T& e) : element(e) {}
-        FreeElement& operator=(const T& e) { new(&element) T(e); return *this; }
-    };
-
-    SmallList<FreeElement> data;
-    int first_free;
-};
- 
-// ---------------------------------------------------------------------------------
-// SmallList Implementation
-// ---------------------------------------------------------------------------------
+  
 template <class T>
 SmallList<T>::ListData::ListData(): data(buf), num(0), cap(fixed_cap)
 {
@@ -210,15 +158,14 @@ template <class T>
 void SmallList<T>::reserve(int n)
 {
     enum {type_size = sizeof(T)};
-    if (n > ld.cap)
-    {
-        if (ld.cap == fixed_cap)
-        {
-            ld.data = static_cast<T*>(malloc(n * type_size));
-            memcpy(ld.data, ld.buf, sizeof(ld.buf));
-        }
-        else
+    if (n > ld.cap) {
+        if (ld.cap == fixed_cap) {
+            T* new_data = static_cast<T*>(malloc(n * type_size));
+            memcpy(new_data, ld.buf, ld.num * type_size);
+            ld.data = new_data; 
+        } else {
             ld.data = static_cast<T*>(realloc(ld.data, n * type_size));
+        }
         ld.cap = n;
     }
 }
@@ -226,8 +173,7 @@ void SmallList<T>::reserve(int n)
 template <class T>
 void SmallList<T>::push_back(const T& element)
 {
-    if (ld.num >= ld.cap)
-        reserve(ld.cap * 2);
+    if (ld.num >= ld.cap) reserve(ld.cap * 2);
     ld.data[ld.num++] = element;
 }
  
@@ -250,10 +196,8 @@ void SmallList<T>::swap(SmallList& other)
     ld1 = ld2;
     ld2 = temp;
  
-    if (use_fixed1)
-        ld2.data = ld2.buf;
-    if (use_fixed2)
-        ld1.data = ld1.buf;
+    if (use_fixed1) ld2.data = ld2.buf;
+    if (use_fixed2) ld1.data = ld1.buf;
 }
  
 template <class T>
@@ -271,6 +215,55 @@ const T* SmallList<T>::data() const
 // ---------------------------------------------------------------------------------
 // FreeList Implementation
 // ---------------------------------------------------------------------------------
+/// Provides an indexed free list with constant-time removals from anywhere
+/// in the list without invalidating indices. T must be trivially constructible 
+/// and destructible.
+template <class T>
+class FreeList
+{
+public:
+    /// Creates a new free list.
+    FreeList();
+ 
+    /// Inserts an element to the free list and returns an index to it.
+    int insert(const T& element);
+ 
+    // Removes the nth element from the free list.
+    void erase(int n);
+ 
+    // Removes all elements from the free list.
+    void clear();
+ 
+    // Returns the range of valid indices.
+    int range() const;
+ 
+    // Returns the nth element.
+    T& operator[](int n);
+ 
+    // Returns the nth element.
+    const T& operator[](int n) const;
+ 
+    // Reserves space for n elements.
+    void reserve(int n);
+ 
+    // Swaps the contents of the two lists.
+    void swap(FreeList& other);
+ 
+private:
+    union FreeElement
+    {
+        T element;
+        int next;
+        FreeElement() {}
+        FreeElement(const T& e) : element(e) {}
+        FreeElement& operator=(const T& e) { new(&element) T(e); return *this; }
+    };
+    SmallList<FreeElement> data;
+    int first_free;
+};
+// ---------------------------------------------------------------------------------
+// FreeList Implementation
+// ---------------------------------------------------------------------------------
 template <class T>
 FreeList<T>::FreeList(): first_free(-1)
 {
@@ -279,15 +272,12 @@ FreeList<T>::FreeList(): first_free(-1)
 template <class T>
 int FreeList<T>::insert(const T& element)
 {
-    if (first_free != -1)
-    {
+    if (first_free != -1) {
         const int index = first_free;
         first_free = data[first_free].next;
         data[index].element = element;
         return index;
-    }
-    else
-    {
+    } else {
         FreeElement fe;
         fe.element = element;
         data.push_back(fe);
