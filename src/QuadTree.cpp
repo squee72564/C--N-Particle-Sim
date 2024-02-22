@@ -175,16 +175,17 @@ void QuadTree::display(sf::RenderWindow* game_window, int total_leaf_nodes)
 void QuadTree::insert(std::vector<Particle>& particles)
 {
 
-    NodeData array[40]; // <idx, nodeInfo>
+    NodeData array[40]; // Struct to help traverse tree 
     
-    // Create the first gravity node for the root, and the split function will add and remove
-    // nodes as needed
+    // Considering we are removing and adding particles every frame,
+    // insert the first gravity node for the root, and the split 
+    // function will add and remove nodes as needed
     tree_nodes_[0].grav_element = gravity_nodes_.insert(QuadTree::GravityElementNode());
 
 
     for (std::size_t i = 0; i < particles.size(); ++i) {
         
-
+        // Push root on stack
         int top = 0;
         
         NodeData node;
@@ -204,7 +205,7 @@ void QuadTree::insert(std::vector<Particle>& particles)
             QuadTree::TreeNode& currNode = tree_nodes_[curr_index];
 
             const sf::Vector2f child_size(curr_size.x * 0.5f, curr_size.y * 0.5f);
-            const sf::Vector2f offsets[4] = {
+            const sf::Vector2f child_offsets[4] = {
                 curr_pos,
                 sf::Vector2f(curr_pos.x + child_size.x, curr_pos.y), 
                 sf::Vector2f(curr_pos.x, curr_pos.y + child_size.y), 
@@ -214,8 +215,9 @@ void QuadTree::insert(std::vector<Particle>& particles)
             if (currNode.count != -1) { // If current node is a leaf
                 const size_t num_particles = currNode.count;
 
-                if (curr_depth < tree_max_depth_ && num_particles+1 > node_cap_) {
-                    split(curr_index, child_size, offsets, particles);
+                // Split if already at node cap, else insert into tree node
+                if (curr_depth < tree_max_depth_ && num_particles == node_cap_) {
+                    split(curr_index, child_size, child_offsets, particles);
                 } else {
                     particle_nodes_.emplace_back(QuadTree::ParticleElementNode(currNode.first_particle, i));
                     currNode.first_particle = particle_nodes_.size() - 1;
@@ -232,11 +234,12 @@ void QuadTree::insert(std::vector<Particle>& particles)
                 }
             }
 
+            // Push children tha contain particle on stack
             for (int j = 1; j <= 4; j++) {
                 const int child_idx = 4 * curr_index + j;
 
-                if (sf::FloatRect(offsets[j-1], child_size).contains(particles[i].position)) {
-                    node = {child_idx, curr_depth+1, offsets[j-1], child_size};
+                if (sf::FloatRect(child_offsets[j-1], child_size).contains(particles[i].position)) {
+                    node = {child_idx, curr_depth+1, child_offsets[j-1], child_size};
 
                     array[top++] = node;
 
@@ -249,13 +252,21 @@ void QuadTree::insert(std::vector<Particle>& particles)
 
 void QuadTree::split(const int parent_index,
 					 const sf::Vector2f& child_size,
-					 const sf::Vector2f* child_offsets,
+					 const sf::Vector2f(& child_offsets)[4],
 					 std::vector<Particle>& particles)
 {
     QuadTree::TreeNode& parent_tree_node = tree_nodes_[parent_index];
 
+    // Get rid of parent gravity node as we will split particles to children 
     gravity_nodes_.erase(parent_tree_node.grav_element);
 
+    // Add new gravity nodes for children
+    for (int i = 1; i <= 4; ++i) {
+        const int child_idx = 4 * parent_index + i;
+        tree_nodes_[child_idx].grav_element = gravity_nodes_.insert(QuadTree::GravityElementNode());
+    }
+
+    // Insert parent particles into children nodes
     int curr_particle_element_index = parent_tree_node.first_particle;
 
     while (curr_particle_element_index != -1) {
@@ -264,11 +275,6 @@ void QuadTree::split(const int parent_index,
         int next_particle_element = curr_particle_element.next_element_index;
         
         Particle& curr_particle = particles[curr_particle_element.particle_index];
-
-        for (int i = 1; i <= 4; ++i) {
-            const int child_idx = 4 * parent_index + i;
-            tree_nodes_[child_idx].grav_element = gravity_nodes_.insert(QuadTree::GravityElementNode());
-        }
 
         for (int i = 1; i <= 4; ++i) {
             const int child_idx = 4 * parent_index + i;
@@ -290,6 +296,7 @@ void QuadTree::split(const int parent_index,
         curr_particle_element_index = next_particle_element;
     }
 	
+    // Mark parent as a branch
     parent_tree_node.count = -1;
 }
 
@@ -344,6 +351,7 @@ sf::Vector2f QuadTree::getLeafNodes(std::vector<QuadTree::TreeNode*>& vec, int& 
         global_com.x = 0.0f;
         global_com.y = 0.0f;
     }
+
     return global_com;
 }
 

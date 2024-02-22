@@ -61,7 +61,7 @@ public:
   void insert(std::vector<Particle>& particles);
   void split(const int parent_index,
              const sf::Vector2f& child_size,
-             const sf::Vector2f* child_offsets,
+             const sf::Vector2f(& child_offsets)[4],
              std::vector<Particle>& particles);
   void deleteTree();
   sf::Vector2f getLeafNodes(std::vector<QuadTree::TreeNode*>& vec,
