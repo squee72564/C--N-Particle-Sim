@@ -26,7 +26,6 @@ public:
     float total_mass;
 
     GravityElementNode() : com_x(0.0f), com_y(0.0f), total_mass(0.0f) {}
-    //GravityElementNode(double com, double mass) : com_x(com), com_y(com), total_mass(mass) {}
     ~GravityElementNode() = default;
   };
 
@@ -44,6 +43,7 @@ private:
   int h_;
   int tree_max_depth_;
   unsigned int node_cap_;
+
   std::vector<QuadTree::TreeNode> tree_nodes_;
   std::vector<QuadTree::ParticleElementNode> particle_nodes_;
   FreeList<QuadTree::GravityElementNode> gravity_nodes_;
@@ -66,13 +66,12 @@ public:
   void deleteTree();
   sf::Vector2f getLeafNodes(std::vector<QuadTree::TreeNode*>& vec,
                             int& total_leaf_nodes,
-                            float& total_mass);
+                            float& global_mass);
   bool empty(const QuadTree::TreeNode* node);
   const std::vector<QuadTree::ParticleElementNode>& getParticleElementNodeVec();
-  const sf::Vector2f getCOM(const QuadTree::TreeNode* node);
-  int getTotalMass(const QuadTree::TreeNode* node);
+  const sf::Vector2f getNodeCOM(const QuadTree::TreeNode* node);
+  int getNodeTotalMass(const QuadTree::TreeNode* node);
   int getMaxDepth();
-  int getNodeCap();
   void setMaxDepth(int depth);
 };
 
