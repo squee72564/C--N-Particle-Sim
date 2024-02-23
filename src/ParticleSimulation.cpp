@@ -1,4 +1,5 @@
 #include <iostream>
+#include <SFML/Graphics.hpp>
 
 #include "ParticleSimulation.hpp"
 
@@ -304,40 +305,84 @@ void ParticleSimulation::updateAndDraw()
 
     if (!particles_.empty() && show_particles_) {
 
+
         {
             API_PROFILER(DrawParticles);
-            
             sf::VertexArray particles_vertices(sf::Triangles, particles_.size() * 3);
-            int vi = 0;
 
-            for (std::size_t i = 0; i < particles_.size(); ++i) {
-                const float center_x = particles_[i].position.x;
-                const float center_y = particles_[i].position.y;
-                const float y_pos = center_y - P_RADIUS_DIV_2;
+            if (particles_.size() >= 8E5) {
+                const std::size_t chunk_size = particles_.size() / num_threads_;
+                const std::size_t remainder = particles_.size() % num_threads_;
 
-                // Right now to lower time for drawing function we are only drawing a triangle
-                // where the particle circle would be inscribed within the triangle. This will lead total
-                // some visual overlap close to the triangle vertices when particles_ are not actually overlapping,
-                // but allows us to use a vertex array of triangles with only 3 vertices per particle for a batch render
-                
-                // Top vertex
-                particles_vertices[vi].position.x = center_x;
-                particles_vertices[vi].position.y = center_y + 0.5f;
-                particles_vertices[vi++].color = particles_[i].color;
+                for (int i = 0; i < num_threads_; i++) {
+                    const std::size_t start_index = i * chunk_size;
+                    const std::size_t end_index = (i==num_threads_-1) ? start_index + chunk_size + remainder : start_index + chunk_size;
+                    
+                    auto thread_function = [this, start_index, end_index, &particles_vertices]() {
+                        std::size_t vi = start_index*3;
+                        
+                        for (std::size_t i = start_index; i < end_index; ++i) {
+                            const float center_x = particles_[i].position.x;
+                            const float center_y = particles_[i].position.y;
+                            const float y_pos = center_y - P_RADIUS_DIV_2;
 
-                // Left vertex
-                particles_vertices[vi].position.x = center_x - TRI_X_OFFSET;
-                particles_vertices[vi].position.y = y_pos;
-                particles_vertices[vi++].color = particles_[i].color;
+                            // Right now to lower time for drawing function we are only drawing a triangle
+                            // where the particle circle would be inscribed within the triangle. This will lead total
+                            // some visual overlap close to the triangle vertices when particles_ are not actually overlapping,
+                            // but allows us to use a vertex array of triangles with only 3 vertices per particle for a batch render
+                            
+                            // Top vertex
+                            particles_vertices[vi].position.x = center_x;
+                            particles_vertices[vi].position.y = center_y + 0.5f;
+                            particles_vertices[vi++].color = particles_[i].color;
 
-                // Right vertex
-                particles_vertices[vi].position.x = center_x + TRI_X_OFFSET;
-                particles_vertices[vi].position.y = y_pos;
-                particles_vertices[vi++].color = particles_[i].color;
-               
+                            // Left vertex
+                            particles_vertices[vi].position.x = center_x - TRI_X_OFFSET;
+                            particles_vertices[vi].position.y = y_pos;
+                            particles_vertices[vi++].color = particles_[i].color;
+
+                            // Right vertex
+                            particles_vertices[vi].position.x = center_x + TRI_X_OFFSET;
+                            particles_vertices[vi].position.y = y_pos;
+                            particles_vertices[vi++].color = particles_[i].color;
+                           
+                        }
+                    };
+
+                    threads_.emplace_back(thread_function);
+                }
+
+                for (auto& thread : threads_)
+                {
+                    thread.join();
+                }
+            } else {
+                std::size_t vi = 0;
+                for (std::size_t i = 0; i < particles_.size(); ++i) {
+                    const float center_x = particles_[i].position.x;
+                    const float center_y = particles_[i].position.y;
+                    const float y_pos = center_y - P_RADIUS_DIV_2;
+
+                    // Top vertex
+                    particles_vertices[vi].position.x = center_x;
+                    particles_vertices[vi].position.y = center_y + 0.5f;
+                    particles_vertices[vi++].color = particles_[i].color;
+
+                    // Left vertex
+                    particles_vertices[vi].position.x = center_x - TRI_X_OFFSET;
+                    particles_vertices[vi].position.y = y_pos;
+                    particles_vertices[vi++].color = particles_[i].color;
+
+                    // Right vertex
+                    particles_vertices[vi].position.x = center_x + TRI_X_OFFSET;
+                    particles_vertices[vi].position.y = y_pos;
+                    particles_vertices[vi++].color = particles_[i].color;
+                }
             }
 
             game_window_->draw(particles_vertices);
+
+            threads_.clear();
         }
 
         if (show_velocity_) {
@@ -380,7 +425,7 @@ inline void ParticleSimulation::drawAimLine()
 {	
     velocity_text_.setPosition(initial_mouse_pos_f_.x+5.0f, initial_mouse_pos_f_.y);
     float angle =  (initial_mouse_pos_f_.y - current_mouse_pos_f_.y) / (initial_mouse_pos_f_.x - current_mouse_pos_f_.x);
-    velocity_text_.setString(std::to_string( abs( ( atan(angle) * 180.0f ) / 3.14159f) ));
+    velocity_text_.setString(std::to_string( abs( ( atan(angle) * 180.0f ) * 0.31831015f) ));
 
     sf::VertexArray line(sf::Lines, 2);
     line[0].position = initial_mouse_pos_f_;
@@ -398,10 +443,8 @@ inline void ParticleSimulation::drawParticleVelocity()
     
     int pIdx = 0;
     for (std::size_t i = 0; i < particles_.size()*2; i+=2) {
-        
-        lines[i+1].position.x = (particles_[pIdx].position.x + particles_[pIdx].velocity.x/450);
-        lines[i+1].position.y = (particles_[pIdx].position.y + particles_[pIdx].velocity.y/450);
         lines[i].position = particles_[pIdx].position;
+        lines[i+1].position = particles_[pIdx].position + particles_[pIdx].velocity * 0.00222f;
         lines[i].color  = sf::Color(0,0,255,85);
         lines[i+1].color = sf::Color(255,0,0,0);
 
@@ -414,13 +457,18 @@ inline void ParticleSimulation::drawParticleVelocity()
 
 static inline void attractParticleToMousePos(Particle& particle, sf::Vector2f& current_mouse_pos_f) 
 {
-    particle.velocity -= sf::Vector2f(0.35f * (particle.position.x - current_mouse_pos_f.x),
-                                0.35f * (particle.position.y - current_mouse_pos_f.y));
+    const float distance_squared = dot(particle.position - current_mouse_pos_f,
+                                particle.position - current_mouse_pos_f);
+
+    particle.acceleration += (3.5E6f / distance_squared) * 
+                                BIG_G * (current_mouse_pos_f - particle.position);
+
+    //particle.velocity -= (particle.position - current_mouse_pos_f) * 0.35f;
 }
 
 void ParticleSimulation::updateForces(float global_mass)
 {
-    int n_threads = num_threads_;
+    const int n_threads = num_threads_;
     
     if  (quad_tree_leaf_nodes_.size() < static_cast<std::size_t>(num_threads_)) {
         num_threads_ = quad_tree_leaf_nodes_.size();
@@ -436,24 +484,48 @@ void ParticleSimulation::updateForces(float global_mass)
 		const std::size_t start_index = i * chunk_size;
         const std::size_t end_index = (i==num_threads_-1) ? start_index + chunk_size + remainder : start_index + chunk_size;
         
-        auto thread_function = [this, start_index, end_index]() {
+        auto thread_function = [this, start_index, end_index, global_mass]() {
 
             const std::vector<QuadTree::ParticleElementNode>& particle_element_nodes = quad_tree_.getParticleElementNodeVec();
 
             for (std::size_t j = start_index; j < end_index; j++) {
 				
                 QuadTree::TreeNode* curr_tree_node = quad_tree_leaf_nodes_[j];
+
+                // First apply gravitational force from all other cells to the particle
+                sf::Vector2f new_com(0,0);
+
+                const int non_local_particle_count = (particles_.size() - curr_tree_node->count);
+                const float non_local_mass = global_mass - quad_tree_.getNodeTotalMass(curr_tree_node);
+
+                if (non_local_particle_count != 0) {
+                    const sf::Vector2f curr_node_com = quad_tree_.getNodeCOM(curr_tree_node);
+
+                    new_com.x = static_cast<float>(global_mass * global_com_.x - curr_node_com.x) /
+                                    static_cast<float>(non_local_mass);
+                    new_com.y = static_cast<float>(global_mass * global_com_.y - curr_node_com.y) /
+                                    static_cast<float>(non_local_mass);
+                }
+
                 const int first_particle_idx = curr_tree_node->first_particle;
 				
-                // Handle Particle to Particle interactions for each leaf
-                for (int i = first_particle_idx; i != -1; i = particle_element_nodes[i].next_element_index) {
+                // Handle Particle to Particle interactions within the leaf node
+                for (int k = first_particle_idx; k != -1; k = particle_element_nodes[k].next_element_index) {
 
-                    int particle_index = particle_element_nodes[i].particle_index;
+                    const int particle_index = particle_element_nodes[k].particle_index;
                     Particle& particle = particles_[particle_index];
 
-                    for (int j = first_particle_idx; j != -1; j = particle_element_nodes[j].next_element_index) {
+                    if (non_local_particle_count != 0) {
+                        const float distance_squared = dot(particle.position - new_com,
+                                                      particle.position - new_com);
+
+                        particle.acceleration += (non_local_mass / distance_squared) * BIG_G *
+                                                        (new_com - particle.position);
+                    }
+
+                    for (int l = first_particle_idx; l != -1; l = particle_element_nodes[l].next_element_index) {
 						
-                        int other_index = particle_element_nodes[j].particle_index;
+                        const int other_index = particle_element_nodes[l].particle_index;
                         Particle& other = particles_[other_index];
 
                         if (&other == &particle) continue;
@@ -482,8 +554,6 @@ void ParticleSimulation::updateForces(float global_mass)
 
                             // Softening factor to prevent infinite forces at very small distances
                             const float epsilon = 0.01f;
-
-                            // Modified distance calculation to include softening factor
                             const float softened_distance_squared = distance_squared + epsilon;
 
                             particle.acceleration += (other.mass / softened_distance_squared) * 
@@ -491,6 +561,7 @@ void ParticleSimulation::updateForces(float global_mass)
 
                         }
                     }
+
                 }
             }
         };
@@ -505,75 +576,47 @@ void ParticleSimulation::updateForces(float global_mass)
 
     threads_.clear();
 	
-    // Use global COM calculate the gravitational force for all leaf nodes besides the current leaf, and apply
-    // this force to the particles. We also change the particle color based on its velocity.
-    for (int i = 0; i < num_threads_; i++) {
-        const std::size_t start_index = i * chunk_size;
-        const std::size_t end_index = (i==num_threads_-1) ? start_index + chunk_size + remainder : start_index + chunk_size;
-        
-        auto thread_function = [this, start_index, end_index, global_mass]() {
+    const std::size_t chunk_size2 = particles_.size() / num_threads_;
+    const std::size_t remainder2 = particles_.size() % num_threads_;
 
+    // Loop through particles to set new velocity and the color based on that velocity
+    for (int i = 0; i < num_threads_; i++) {
+        const std::size_t start_index = i * chunk_size2;
+        const std::size_t end_index = (i==num_threads_-1) ? start_index + chunk_size2 + remainder2 : start_index + chunk_size2;
+        
+        auto thread_function = [this, start_index, end_index]() {
+            
             sf::Color c;
-            const std::vector<QuadTree::ParticleElementNode>& particle_element_nodes = quad_tree_.getParticleElementNodeVec();
 
             for (std::size_t j = start_index; j < end_index; j++) {
 				
-                QuadTree::TreeNode* curr_tree_node = quad_tree_leaf_nodes_[j];
+                Particle& particle = particles_[j];
 
-                sf::Vector2f new_com(0,0);
+                if (is_right_button_pressed_)
+                    attractParticleToMousePos(particle, current_mouse_pos_f_);
 
-                int non_local_particle_count = (particles_.size() - curr_tree_node->count);
-                float non_local_mass = global_mass - quad_tree_.getNodeTotalMass(curr_tree_node);
+                particle.velocity += particle.acceleration * time_step_;
+                particle.position += particle.velocity * time_step_;
+                
+                float velocity = std::sqrt(particle.velocity.x * particle.velocity.x +
+                                           particle.velocity.y * particle.velocity.y);
 
-                if (non_local_particle_count != 0) {
-                    const sf::Vector2f curr_node_com = quad_tree_.getNodeCOM(curr_tree_node);
+                const float max_velocity = 3000.0f;
 
-                    new_com.x = static_cast<float>(global_mass * global_com_.x - curr_node_com.x) /
-                                    static_cast<float>(non_local_mass);
-                    new_com.y = static_cast<float>(global_mass * global_com_.y - curr_node_com.y) /
-                                    static_cast<float>(non_local_mass);
-                }
+                if (velocity > max_velocity) velocity = max_velocity;
+                
+                const float p = velocity / max_velocity;
 
-                for (int i = curr_tree_node->first_particle; i != -1; i = particle_element_nodes[i].next_element_index) {
+                c.r = static_cast<uint8_t>(15.0f + (240.0f * p));
+                c.g = 0;
+                c.b = static_cast<uint8_t>(240.0f * (1.0f-p));
+                c.a = static_cast<uint8_t>(30.0f + (225.0f * p));
 
-                    int particle_index = particle_element_nodes[i].particle_index;
-                    Particle& particle = particles_[particle_index];
+                particle.color = c;
 
-                    if (non_local_particle_count != 0) {
-                        const float distance_squared = dot(particle.position - new_com,
-                                                      particle.position - new_com);
+                particle.acceleration.x = 0.0f;
+                particle.acceleration.y = 0.0f;
 
-                        particle.acceleration += (non_local_mass / distance_squared) * BIG_G *
-                                                        (new_com - particle.position);
-                    }
-
-                    if (is_right_button_pressed_)
-                        attractParticleToMousePos(particle, current_mouse_pos_f_);
-
-                    particle.velocity += particle.acceleration * time_step_;
-                    particle.position += particle.velocity * time_step_;
-                    
-                    float vel = std::sqrt(particle.velocity.x * particle.velocity.x +
-                                particle.velocity.y * particle.velocity.y);
-
-
-                    float maxVel = 3000.0f;
-
-                    if (vel > maxVel) vel = maxVel;
-                    
-                    float p = vel / maxVel;
-
-                    c.r = static_cast<uint8_t>(15.0f + (240.0f * p));
-                    c.g = 0;
-                    c.b = static_cast<uint8_t>(240.0f * (1.0f-p));
-                    c.a = static_cast<uint8_t>(30.0f + (225.0f * p));
-
-                    particle.color = c;
-
-                    particle.acceleration.x = 0.0f;
-                    particle.acceleration.y = 0.0f;
-
-                }
             }
         };
 
