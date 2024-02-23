@@ -155,7 +155,7 @@ private:
     double measured = m_threadInfo->accumulator;
 
     printf("TID 0x%lx - Time spent in \"%s\":\n\
-            -- %.0f/%.0f microseconds n\
+            -- %.0f/%.0f microseconds \n\
             -- %.1f%% of total time interal\n\
             -- %lldx ~ %.2f microseconds per call\n",
       (long) pthread_self(),
