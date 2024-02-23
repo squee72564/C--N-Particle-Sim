@@ -164,7 +164,7 @@ private:
       interval,
       100.0f * measured / interval,
       m_threadInfo->hitCount,
-      (measured * 1e6) / m_threadInfo->hitCount);
+      measured / m_threadInfo->hitCount);
 
     m_threadInfo->lastReportTime = end;
     m_threadInfo->accumulator = 0;
