@@ -76,13 +76,17 @@ private:
     float interval = (end - m_threadInfo->lastReportTime) * s_ooFrequency;
     float measured = m_threadInfo->accumulator * s_ooFrequency;
 
-    printf("TID 0x%lx time spent in \"%s\": %.0f/%.0f microsec %.1f%% %lldx\n",
+    printf("TID 0x%lx - Time spent in \"%s\":\n\
+            -- %.0f/%.0f microseconds \n\
+            -- %.1f%% of total time interal\n\
+            -- %lldx ~ %.2f microseconds per call\n",
       GetCurrentThreadId(),
       m_threadInfo->name,
       measured * 1e6,
       interval * 1e6,
       100.0f * measured / interval,
-      m_threadInfo->hitCount);
+      m_threadInfo->hitCount,
+      (measured * 1e6) / m_threadInfo->hitCount);
 
     m_threadInfo->lastReportTime = end;
     m_threadInfo->accumulator = 0;
@@ -150,13 +154,17 @@ private:
 
     double measured = m_threadInfo->accumulator;
 
-    printf("TID 0x%lx time spent in \"%s\": %.0f/%.0f microsec %.1f%% %lldx\n",
+    printf("TID 0x%lx - Time spent in \"%s\":\n\
+            -- %.0f/%.0f microseconds n\
+            -- %.1f%% of total time interal\n\
+            -- %lldx ~ %.2f microseconds per call\n",
       (long) pthread_self(),
       m_threadInfo->name,
       measured,
       interval,
       100.0f * measured / interval,
-      m_threadInfo->hitCount);
+      m_threadInfo->hitCount,
+      (measured * 1e6) / m_threadInfo->hitCount);
 
     m_threadInfo->lastReportTime = end;
     m_threadInfo->accumulator = 0;
